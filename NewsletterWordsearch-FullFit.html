@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NewsletterWordsearch — Full Fit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --card: #111827;
+    --muted: #6b7280;
+    --ink: #e5e7eb;
+    --accent: #60a5fa;
+    --accent-2: #22d3ee;
+    --found: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --cell: 28px; /* will be overridden by JS to fit the screen */
+    --gap: 4px;   /* can shrink on small screens */
+    --sideW: 320px; /* side panel width, may shrink responsively */
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    background: radial-gradient(1200px 800px at 20% -10%, #172554 0%, #0b0e14 60%);
+    color: var(--ink);
+    overflow: hidden; /* prevent page scroll */
+  }
+  .app {
+    height: 100%;
+    width: 100%;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 1fr var(--sideW);
+    grid-template-rows: 1fr;
+    gap: 16px;
+  }
+  .panel {
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    overflow: hidden;
+    min-height: 0; /* allow children to size within grid area */
+    display: flex;
+    flex-direction: column;
+  }
+  .header { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); flex: 0 0 auto; }
+  .title { font-weight: 800; font-size: 18px; letter-spacing: .3px; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .content { padding: 12px; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+  .grid-wrap { flex: 1 1 auto; min-height: 0; overflow: hidden; /* no scroll here */ display: grid; place-items: center; }
+  .grid {
+    --rows: 25;
+    --cols: 30;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), var(--cell));
+    grid-auto-rows: var(--cell);
+    gap: var(--gap);
+    touch-action: none;
+    user-select: none;
+  }
+  .cell {
+    width: var(--cell); height: var(--cell); line-height: var(--cell); text-align: center;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-weight: 700;
+    font-size: calc(var(--cell) * 0.5);
+    transition: transform .05s ease, background .15s ease, border-color .15s ease;
+  }
+  .cell.empty { background: transparent; border-color: transparent; pointer-events: none; }
+  .cell.hover { transform: scale(1.06); border-color: var(--accent); }
+  .cell.preview { background: rgba(96,165,250,.25); border-color: rgba(96,165,250,.6); }
+  .cell.selected { background: rgba(34,211,238,.35); border-color: rgba(34,211,238,.8); }
+  .cell.found { background: rgba(16,185,129,.35); border-color: rgba(16,185,129,.9); }
+  .toolbar {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 0; flex: 0 0 auto;
+  }
+  button {
+    background: linear-gradient(180deg, #1f2937, #111827);
+    color: #eef2ff; border: 1px solid rgba(255,255,255,.1); padding: 8px 10px;
+    border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 12px;
+  }
+  button:hover { border-color: rgba(255,255,255,.25); }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px; font-size: 12px; color: var(--muted);
+  }
+  .side .content { overflow: auto; /* list can scroll inside panel if it must */ }
+  .side .word { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:12px; }
+  .side .word:nth-child(odd) { background: rgba(255,255,255,0.03); }
+  .side .word .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .side .word .ok { color: var(--found); font-weight: 800; }
+  .stats { display:flex; gap:14px; flex-wrap:wrap; }
+  .kpi { background: rgba(255,255,255,0.06); padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); }
+  @media (max-width: 980px) {
+    :root { --sideW: 280px; }
+    .title { font-size: 16px; }
+  }
+  @media (max-width: 800px) {
+    .app { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    :root { --sideW: 100%; }
+    .side { min-height: 180px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="panel main">
+    <div class="header">
+      <div class="title">NewsletterWordsearch</div>
+      <div class="muted">Interactive word search — drag in straight or diagonal lines. Scales to fit your screen.</div>
+    </div>
+    <div class="content">
+      <div class="toolbar">
+        <button id="resetBtn" title="Clear all progress">Reset</button>
+        <button id="revealBtn" title="Reveal a random remaining word">Reveal one</button>
+        <span class="chip" id="timer">00:00</span>
+        <span class="chip" id="progress">0 / 0</span>
+      </div>
+      <div class="grid-wrap">
+        <div id="grid" class="grid"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel side">
+    <div class="header">
+      <div class="title">Find these</div>
+      <div class="muted">Tap a word to jump to its first letter.</div>
+    </div>
+    <div class="content" id="wordsList"></div>
+  </div>
+</div>
+
+<script>
+const PUZZLE = {"puzzle_id": "new_20251016165937", "puzzle_name": "NewsletterWordsearch", "category": "", "subcategory": "", "grid": ["                VJFFF         ", "               KSMALL         ", "              UBKR            ", "              TZOC            ", "      LAMSSSOLGTOPSGMT        ", "    UGNITTESEPYTBDKROTBUA     ", "   DKECNEREFNOCSELASRMFLFT    ", "   ERUTANGISZLKKCGUREYAPEQSA  ", "  DSUQEVNOITCUDORPHOSLOROEBI  ", " DQICCEAMLAUNCHPUBOPSZUOGXDQH ", "VJSGGLHI WMMAUMJOYQDQ QDKIUSOL", "DPPNICSR   SSZOYSJZ   ETECNJPS", "CARXKSTET   HOACKX   RUUQHVSWV", "OXECYARTBO GXW  DFZ PMKDTICEHU", "VVAHMZATVHNGY    RASSTIAHTOSXM", "URDVGJMANAGINGEDITORIALSIEXUIW", "TRSYONSMDJVQZHDZWWYWDMPETSEOGL", "LUCYOBIT WD U A O V W  ERTPFGB", "QXBJZXON              TQAIEELM", " DUGCHEON            QXLTNGPF ", " MTEASERKU KVW K L E TPWEGFWL ", "  QOBSUFJSRUCAFTWNPMRMHGWAHU  ", "   GDUMAUDCAMOGREKAMELIFCLK   ", "    VHCDORNASMETADATARNYAT    ", "      PROOFINGXTTAJAXLE       "], "words": [{"text": "PUBOPS", "display_text": "PubOps", "path": [[9, 15], [9, 16], [9, 17], [9, 18], [9, 19], [9, 20]]}, {"text": "MANAGINGEDITORIAL", "display_text": "Managing Editorial", "path": [[15, 6], [15, 7], [15, 8], [15, 9], [15, 10], [15, 11], [15, 12], [15, 13], [15, 14], [15, 15], [15, 16], [15, 17], [15, 18], [15, 19], [15, 20], [15, 21], [15, 22]]}, {"text": "SMARTSHEET", "display_text": "Smart Sheet", "path": [[16, 6], [15, 6], [14, 6], [13, 6], [12, 6], [11, 6], [10, 6], [9, 6], [8, 6], [7, 6]]}, {"text": "FILEMAKER", "display_text": "FileMaker", "path": [[22, 23], [22, 22], [22, 21], [22, 20], [22, 19], [22, 18], [22, 17], [22, 16], [22, 15]]}, {"text": "PRODUCTION", "display_text": "Production", "path": [[8, 17], [8, 16], [8, 15], [8, 14], [8, 13], [8, 12], [8, 11], [8, 10], [8, 9], [8, 8]]}, {"text": "DESIGN", "display_text": "Design", "path": [[6, 3], [7, 3], [8, 3], [9, 3], [10, 3], [11, 3]]}, {"text": "STET", "display_text": "Stet", "path": [[12, 5], [12, 6], [12, 7], [12, 8]]}, {"text": "TRACKCHANGES", "display_text": "Track Changes", "path": [[16, 0], [15, 1], [14, 2], [13, 3], [12, 4], [11, 5], [10, 6], [9, 7], [8, 8], [7, 9], [6, 10], [5, 11]]}, {"text": "LAUNCH", "display_text": "Launch", "path": [[9, 9], [9, 10], [9, 11], [9, 12], [9, 13], [9, 14]]}, {"text": "SALESCONFERENCE", "display_text": "Sales Conference", "path": [[6, 19], [6, 18], [6, 17], [6, 16], [6, 15], [6, 14], [6, 13], [6, 12], [6, 11], [6, 10], [6, 9], [6, 8], [6, 7], [6, 6], [6, 5]]}, {"text": "TEMPLATE", "display_text": "Template", "path": [[23, 19], [22, 20], [21, 21], [20, 22], [19, 23], [18, 24], [17, 25], [16, 26]]}, {"text": "WORDCOUNT", "display_text": "Word Count", "path": [[16, 19], [15, 18], [14, 17], [13, 16], [12, 15], [11, 14], [10, 13], [9, 12], [8, 11]]}, {"text": "SIGNATURE", "display_text": "Signature", "path": [[7, 11], [7, 10], [7, 9], [7, 8], [7, 7], [7, 6], [7, 5], [7, 4], [7, 3]]}, {"text": "FRONTMATTER", "display_text": "Front Matter", "path": [[21, 7], [20, 7], [19, 7], [18, 7], [17, 7], [16, 7], [15, 7], [14, 7], [13, 7], [12, 7], [11, 7]]}, {"text": "TEASER", "display_text": "Teaser", "path": [[20, 2], [20, 3], [20, 4], [20, 5], [20, 6], [20, 7]]}, {"text": "RUNNINGHEAD", "display_text": "Running Head", "path": [[21, 10], [20, 9], [19, 8], [18, 7], [17, 6], [16, 5], [15, 4], [14, 3], [13, 2], [12, 1], [11, 0]]}, {"text": "SPOTGLOSS", "display_text": "Spot Gloss", "path": [[4, 18], [4, 17], [4, 16], [4, 15], [4, 14], [4, 13], [4, 12], [4, 11], [4, 10]]}, {"text": "SPREDGES", "display_text": "Spredges", "path": [[14, 19], [13, 20], [12, 21], [11, 22], [10, 23], [9, 24], [8, 25], [7, 26]]}, {"text": "SOURCEBOOKS", "display_text": "Sourcebooks", "path": [[11, 16], [10, 16], [9, 16], [8, 16], [7, 16], [6, 16], [5, 16], [4, 16], [3, 16], [2, 16], [1, 16]]}, {"text": "METADATA", "display_text": "Metadata", "path": [[23, 13], [23, 14], [23, 15], [23, 16], [23, 17], [23, 18], [23, 19], [23, 20]]}, {"text": "BLEEDS", "display_text": "Bleeds", "path": [[5, 22], [6, 23], [7, 24], [8, 25], [9, 26], [10, 27]]}, {"text": "TESTING", "display_text": "Testing", "path": [[14, 25], [15, 25], [16, 25], [17, 25], [18, 25], [19, 25], [20, 25]]}, {"text": "HITRATE", "display_text": "Hit Rate", "path": [[14, 24], [15, 24], [16, 24], [17, 24], [18, 24], [19, 24], [20, 24]]}, {"text": "BOOKSCAN", "display_text": "BookScan", "path": [[17, 5], [18, 6], [19, 7], [20, 8], [21, 9], [22, 10], [23, 11], [24, 12]]}, {"text": "SCHEDULES", "display_text": "Schedules", "path": [[14, 27], [13, 26], [12, 25], [11, 24], [10, 23], [9, 22], [8, 21], [7, 20], [6, 19]]}, {"text": "TYPESETTING", "display_text": "Typesetting", "path": [[5, 15], [5, 14], [5, 13], [5, 12], [5, 11], [5, 10], [5, 9], [5, 8], [5, 7], [5, 6], [5, 5]]}, {"text": "CMYK", "display_text": "CMYK", "path": [[9, 13], [10, 14], [11, 15], [12, 16]]}, {"text": "PROOFING", "display_text": "Proofing", "path": [[24, 6], [24, 7], [24, 8], [24, 9], [24, 10], [24, 11], [24, 12], [24, 13]]}, {"text": "SPREADS", "display_text": "Spreads", "path": [[10, 2], [11, 2], [12, 2], [13, 2], [14, 2], [15, 2], [16, 2]]}, {"text": "MARGINS", "display_text": "Margins", "path": [[6, 21], [7, 22], [8, 23], [9, 24], [10, 25], [11, 26], [12, 27]]}], "settings": {"source_rows": 25, "source_cols": 30, "final_rows": 25, "final_cols": 30, "words": ["PubOps", "Managing Editorial", "Smart Sheet", "FileMaker", "Production", "Design", "Stet", "Track Changes", "Launch", "Sales Conference", "Template", "Word Count", "Signature", "Front Matter", "Teaser", "Running Head", "Spot Gloss", "Spredges", "Sourcebooks", "Metadata", "Bleeds", "Testing", "Hit Rate", "BookScan", "Schedules", "Typesetting", "CMYK", "Proofing", "Spreads", "Margins"], "rows": 25, "cols": 30, "allow_back": true, "allow_diag_back": true, "back_percent": 50, "category": "", "subcategory": ""}, "is_story_puzzle": false, "story_content": ""};
+
+const rows = PUZZLE.settings.rows, cols = PUZZLE.settings.cols;
+const gridStrings = PUZZLE.grid;
+const grid = [];
+for (let r = 0; r < rows; r++) {
+  const rowStr = gridStrings[r] || "";
+  grid[r] = [];
+  for (let c = 0; c < cols; c++) {
+    const ch = rowStr[c] || " ";
+    grid[r][c] = ch;
+  }
+}
+
+// answers
+const answers = PUZZLE.words.map(w => ({ 
+  text: w.text, 
+  display: w.display_text || w.text, 
+  path: w.path.map(([r,c]) => [r,c])
+}));
+
+// DOM
+const rootStyle = document.documentElement.style;
+const appEl = document.querySelector('.app');
+const mainPanel = document.querySelector('.panel.main');
+const gridWrap = document.querySelector('.grid-wrap');
+const gridEl = document.getElementById('grid');
+const wordsList = document.getElementById('wordsList');
+const timerEl = document.getElementById('timer');
+const progressEl = document.getElementById('progress');
+const resetBtn = document.getElementById('resetBtn');
+const revealBtn = document.getElementById('revealBtn');
+
+// Render grid
+const cellEls = [];
+for (let r = 0; r < rows; r++) {
+  cellEls[r] = [];
+  for (let c = 0; c < cols; c++) {
+    const ch = grid[r][c];
+    const cell = document.createElement('div');
+    cell.className = 'cell' + (ch.trim() === '' ? ' empty' : '');
+    cell.dataset.r = r; cell.dataset.c = c;
+    cell.textContent = ch.trim() === '' ? '' : ch;
+    gridEl.appendChild(cell);
+    cellEls[r][c] = cell;
+  }
+}
+
+// Words list
+const wordState = new Map();
+answers.forEach(a => wordState.set(a.text, {found:false}));
+
+function updateWordsList() {
+  wordsList.innerHTML = '';
+  answers.forEach((a) => {
+    const row = document.createElement('div');
+    row.className = 'word';
+    const left = document.createElement('div');
+    left.className = 'txt';
+    left.textContent = a.display;
+    const right = document.createElement('div');
+    right.className = 'ok';
+    right.textContent = wordState.get(a.text).found ? '✓' : '';
+    row.appendChild(left);
+    row.appendChild(right);
+    row.addEventListener('click', () => {
+      const [r,c] = a.path[0];
+      const el = cellEls[r][c];
+      el.classList.add('hover');
+      setTimeout(() => el.classList.remove('hover'), 600);
+    });
+    wordsList.appendChild(row);
+  });
+}
+updateWordsList();
+
+// Helpers
+function coordsEqual(a,b) { return a[0]===b[0] && a[1]===b[1]; }
+function pathEquals(p1, p2) {
+  if (p1.length !== p2.length) return false;
+  for (let i=0;i<p1.length;i++) if (!coordsEqual(p1[i], p2[i])) return false;
+  return true;
+}
+function reversePath(p) { return [...p].reverse(); }
+
+function genLinePath(r0,c0,r1,c1) {
+  let dr = r1 - r0, dc = c1 - c0;
+  const steps = Math.max(Math.abs(dr), Math.abs(dc));
+  if (steps === 0) return [[r0,c0]];
+  const stepR = dr === 0 ? 0 : (dr/Math.abs(dr));
+  const stepC = dc === 0 ? 0 : (dc/Math.abs(dc));
+  if (!((stepR===0 || stepC===0) || (Math.abs(dr)===Math.abs(dc)))) return [];
+  const path = [];
+  let r=r0, c=c0;
+  for (let i=0; i<=steps; i++) { path.push([r,c]); r+=stepR; c+=stepC; }
+  return path;
+}
+
+// Selection state
+let isDown = false;
+let start = null;
+let previewCells = new Set();
+let foundPaths = [];
+
+function clearPreview() {
+  previewCells.forEach(key => {
+    const [r,c] = key.split(',').map(Number);
+    cellEls[r][c].classList.remove('preview','selected');
+  });
+  previewCells.clear();
+}
+
+function markFound(path) {
+  foundPaths.push(path);
+  path.forEach(([r,c]) => cellEls[r][c].classList.add('found'));
+}
+
+function refreshProgress() {
+  const foundCount = answers.filter(a => wordState.get(a.text).found).length;
+  progressEl.textContent = `${foundCount} / ${answers.length}`;
+}
+
+function tryCommitSelection(r0,c0,r1,c1) {
+  const sel = genLinePath(r0,c0,r1,c1);
+  if (!sel.length) return false;
+  for (const ans of answers) {
+    if (wordState.get(ans.text).found) continue;
+    if (pathEquals(sel, ans.path) || pathEquals(sel, reversePath(ans.path))) {
+      wordState.get(ans.text).found = true;
+      markFound(sel);
+      updateWordsList();
+      refreshProgress();
+      checkWin();
+      return true;
+    }
+  }
+  sel.forEach(([r,c]) => cellEls[r][c].classList.add('selected'));
+  setTimeout(() => sel.forEach(([r,c]) => cellEls[r][c].classList.remove('selected')), 250);
+  return false;
+}
+
+function checkWin() {
+  const allFound = answers.every(a => wordState.get(a.text).found);
+  if (allFound) {
+    const secs = Math.floor((Date.now()-startTime)/1000);
+    const mm = String(Math.floor(secs/60)).padStart(2,'0');
+    const ss = String(secs%60).padStart(2,'0');
+    alert(`All done! Time: ${mm}:${ss}`);
+  }
+}
+
+// Mouse & touch events
+function cellFromEvent(e) {
+  if (e.touches && e.touches.length) {
+    const t = e.touches[0];
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    if (!el || !el.classList.contains('cell')) return null;
+    return [+el.dataset.r, +el.dataset.c];
+  } else {
+    const el = e.target.closest('.cell');
+    if (!el) return null;
+    return [+el.dataset.r, +el.dataset.c];
+  }
+}
+
+gridEl.addEventListener('mousedown', e => {
+  const pos = cellFromEvent(e);
+  if (!pos) return;
+  const [r,c] = pos;
+  if (grid[r][c].trim()==='') return;
+  isDown = true; start = pos; clearPreview();
+  e.preventDefault();
+});
+gridEl.addEventListener('mousemove', e => {
+  if (!isDown) return;
+  const pos = cellFromEvent(e);
+  if (!pos) return;
+  clearPreview();
+  const sel = genLinePath(start[0], start[1], pos[0], pos[1]);
+  sel.forEach(([rr,cc]) => {
+    if (grid[rr][cc].trim()!=='') {
+      const key = rr+','+cc; previewCells.add(key);
+      cellEls[rr][cc].classList.add('preview');
+    }
+  });
+});
+window.addEventListener('mouseup', e => {
+  if (!isDown) return;
+  const endPos = cellFromEvent(e) || start;
+  isDown = false;
+  tryCommitSelection(start[0], start[1], endPos[0], endPos[1]);
+  clearPreview();
+});
+
+gridEl.addEventListener('touchstart', e => {
+  const pos = cellFromEvent(e);
+  if (!pos) return;
+  const [r,c] = pos;
+  if (grid[r][c].trim()==='') return;
+  isDown = true; start = pos; clearPreview();
+}, {passive:true});
+gridEl.addEventListener('touchmove', e => {
+  if (!isDown) return;
+  const pos = cellFromEvent(e);
+  if (!pos) return;
+  clearPreview();
+  const sel = genLinePath(start[0], start[1], pos[0], pos[1]);
+  sel.forEach(([rr,cc]) => {
+    if (grid[rr][cc].trim()!=='') {
+      const key = rr+','+cc; previewCells.add(key);
+      cellEls[rr][cc].classList.add('preview');
+    }
+  });
+}, {passive:true});
+window.addEventListener('touchend', e => {
+  if (!isDown) return;
+  isDown = false;
+  let end = start;
+  if (previewCells.size) {
+    const last = Array.from(previewCells).pop().split(',').map(Number);
+    end = last;
+  }
+  tryCommitSelection(start[0], start[1], end[0], end[1]);
+  clearPreview();
+}, {passive:true});
+
+// Timer
+let startTime = Date.now();
+let timerId = null;
+function tick() {
+  const secs = Math.floor((Date.now()-startTime)/1000);
+  const mm = String(Math.floor(secs/60)).padStart(2,'0');
+  const ss = String(secs%60).padStart(2,'0');
+  timerEl.textContent = mm + ':' + ss;
+}
+timerId = setInterval(tick, 1000);
+tick();
+
+// Progress
+refreshProgress();
+
+// Reveal button
+revealBtn.addEventListener('click', () => {
+  const remaining = answers.filter(a => !wordState.get(a.text).found);
+  if (!remaining.length) return;
+  const pick = remaining[Math.floor(Math.random()*remaining.length)];
+  const path = pick.path;
+  path.forEach(([r,c]) => cellEls[r][c].classList.add('selected'));
+  setTimeout(() => {
+    path.forEach(([r,c]) => cellEls[r][c].classList.remove('selected'));
+    wordState.get(pick.text).found = true;
+    markFound(path);
+    updateWordsList();
+    refreshProgress();
+    checkWin();
+  }, 600);
+});
+
+// Reset
+resetBtn.addEventListener('click', () => {
+  foundPaths.forEach(p => p.forEach(([r,c]) => cellEls[r][c].classList.remove('found')));
+  foundPaths = [];
+  answers.forEach(a => wordState.get(a.text).found = false);
+  updateWordsList(); refreshProgress();
+  startTime = Date.now(); tick();
+});
+
+/* ============ Fit-to-Window Logic ============
+   We compute a cell size that ensures the grid fits within the available space
+   without scrolling, considering panel chrome and gaps. We also allow the side
+   panel to shrink and the grid gap to reduce a bit on small screens.
+*/
+function computeFit() {
+  // Allow the layout to settle
+  const appStyle = getComputedStyle(appEl);
+  const appPadX = parseFloat(appStyle.paddingLeft) + parseFloat(appStyle.paddingRight);
+  const appPadY = parseFloat(appStyle.paddingTop) + parseFloat(appStyle.paddingBottom);
+
+  // Main panel inner available size
+  const header = mainPanel.querySelector('.header');
+  const content = mainPanel.querySelector('.content');
+  const headerH = header.getBoundingClientRect().height;
+  const toolbarH = content.querySelector('.toolbar').getBoundingClientRect().height;
+  const contentStyle = getComputedStyle(content);
+  const contentPY = parseFloat(contentStyle.paddingTop) + parseFloat(contentStyle.paddingBottom);
+  const contentPX = parseFloat(contentStyle.paddingLeft) + parseFloat(contentStyle.paddingRight);
+
+  const panelRect = mainPanel.getBoundingClientRect();
+  const availW = panelRect.width - contentPX; // within content area
+  const availH = panelRect.height - headerH - toolbarH - contentPY - 16; // some cushion
+
+  // Side panel may need to shrink on very small screens
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let sideW = Math.min(340, Math.max(240, Math.floor(vw * 0.3)));
+  if (vw < 800) sideW = vw - 32; // stacked mode
+  rootStyle.setProperty('--sideW', sideW + 'px');
+
+  // Decide gap based on size
+  const gap = vw < 640 ? 2 : (vw < 900 ? 3 : 4);
+  rootStyle.setProperty('--gap', gap + 'px');
+
+  // Compute cell size so entire grid fits (including gaps)
+  const totalGapW = gap * (cols - 1);
+  const totalGapH = gap * (rows - 1);
+  const maxCellW = (availW - totalGapW) / cols;
+  const maxCellH = (availH - totalGapH) / rows;
+  let cell = Math.floor(Math.max(10, Math.min(maxCellW, maxCellH)));
+
+  // Cap cell size to keep typography pleasant on large screens
+  cell = Math.min(cell, 48);
+
+  rootStyle.setProperty('--cell', cell + 'px');
+}
+
+let rAF = null;
+function scheduleFit() {
+  if (rAF) cancelAnimationFrame(rAF);
+  rAF = requestAnimationFrame(() => { computeFit(); rAF = null; });
+}
+
+window.addEventListener('resize', scheduleFit);
+window.addEventListener('orientationchange', scheduleFit);
+scheduleFit(); // initial
+
+</script>
+</body>
+</html>
