@@ -3,23 +3,31 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Forest — Wordsearch (Mobile‑optimized, buttons fixed)</title>
+<title>Forest — Wordsearch (Single column + word list below)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-  :root { --muted:#9aa3b2; --ink:#e5e7eb; --accent:#60a5fa; --found:#10b981; --cell:28px; --gap:4px; --sideW:360px; }
+  :root { --muted:#9aa3b2; --ink:#e5e7eb; --accent:#60a5fa; --found:#10b981; --cell:28px; --gap:4px; }
   * { box-sizing:border-box; }
   html,body { height:100%; }
-  body { height: 100dvh; margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; background: radial-gradient(1200px 800px at 20% -10%, #172554 0%, #0b0e14 60%); color: var(--ink); overflow:hidden; }
+  body { min-height: 100dvh; margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; background: radial-gradient(1200px 800px at 20% -10%, #172554 0%, #0b0e14 60%); color: var(--ink); }
 
-  .app { height:100%; width:100%; padding:12px; display:grid; grid-template-columns: 1fr var(--sideW); gap:12px; }
-  .panel { background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:18px; backdrop-filter: blur(8px); overflow:hidden; display:flex; flex-direction:column; min-height:0; }
-  .header { padding:10px 12px; border-bottom: 1px solid rgba(255,255,255,.06); }
-  .title { font-weight:800; font-size:16px; letter-spacing:.2px; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 16px; display:flex; flex-direction:column; gap: 14px; }
+  .panel { background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:18px; backdrop-filter: blur(8px); overflow:hidden; }
+  .header { padding:12px 14px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .title { font-weight:800; font-size:18px; letter-spacing:.2px; }
   .muted { color: var(--muted); font-size:12px; }
-  .content { padding:10px; display:flex; flex-direction:column; gap:8px; min-height:0; flex:1; }
-  .grid-wrap { flex:1; min-height:0; overflow:hidden; display:grid; place-items:center; }
+
+  .content { padding:12px; }
+  .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+  button { background:linear-gradient(180deg,#1f2937,#111827); color:#eef2ff; border:1px solid rgba(255,255,255,.1); padding:8px 10px; border-radius:12px; cursor:pointer; font-weight:700; font-size:12px; }
+  .chip{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:999px; font-size:12px; color:var(--muted); }
+
+  /* Grid container keeps a fixed height calc so it fits without overlapping words list */
+  .grid-wrap { height: calc(100dvh - 170px); /* header+toolbar+padding allowance */ min-height: 300px; max-height: 80vh; display:grid; place-items:center; overflow:hidden; }
+  @media (max-width:520px){ .grid-wrap{ height: calc(100dvh - 200px);} }
+
   .grid { --rows:30; --cols:20; display:grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-auto-rows: var(--cell); gap: var(--gap); user-select:none; touch-action:none; }
   .cell { width:var(--cell); height:var(--cell); line-height:var(--cell); text-align:center; border-radius:8px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); font-weight:700; font-size:calc(var(--cell)*.5); }
   .cell.empty { background:transparent; border-color:transparent; pointer-events:none; }
@@ -28,42 +36,21 @@
   .cell.selected { background: rgba(34,211,238,.35); border-color: rgba(34,211,238,.8); }
   .cell.found { background: rgba(16,185,129,.35); border-color: rgba(16,185,129,.9); }
 
-  .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  button { background:linear-gradient(180deg,#1f2937,#111827); color:#eef2ff; border:1px solid rgba(255,255,255,.1); padding:8px 10px; border-radius:12px; cursor:pointer; font-weight:700; font-size:12px; }
-  .chip{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:999px; font-size:12px; color:var(--muted); }
-
-  .side .content { overflow:auto; }
-  .side .word { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:12px; }
-  .side .word:nth-child(odd) { background: rgba(255,255,255,.03); }
-  .ok { color: var(--found); font-weight:800; }
-
-  /* Show the Words button by default so it's always available */
-  #openWords { display:inline-flex; align-items:center; gap:6px; }
-
-  /* ——— Mobile tweaks ——— */
-  @media (max-width: 900px){ :root { --gap:3px; } }
-  @media (max-width: 780px){ :root { --gap:2px; } }
-  @media (max-width: 600px){
-    .app { grid-template-columns: 1fr; grid-template-rows: 1fr; }
-    :root { --sideW: 100%; }
-    .side { display:none; }
-  }
-
-  /* Bottom sheet (drawer) for the word list on phones */
-  #openWords { }
-  .drawer { position: fixed; left:0; right:0; bottom:-70dvh; height: 60dvh; backdrop-filter: blur(10px); background: rgba(17,24,39,.9); border-top-left-radius: 18px; border-top-right-radius: 18px; border: 1px solid rgba(255,255,255,.08); box-shadow: 0 -10px 30px rgba(0,0,0,.35); transition: bottom .28s ease; z-index: 50; display:flex; flex-direction:column; }
-  .drawer.open { bottom: 0; }
-  .drawer .drag { width: 46px; height: 4px; background: rgba(255,255,255,.35); border-radius: 999px; margin: 10px auto; }
-  .drawer .body { flex:1; overflow:auto; padding: 6px 12px 14px; }
-  .drawer .header { border-bottom: none; display:flex; align-items:center; justify-content:space-between; padding: 6px 12px 0; }
+  /* Words section always visible below grid */
+  .words-panel .content { display:flex; flex-direction:column; gap:8px; }
+  .words { display:flex; flex-direction:column; gap:4px; }
+  .word { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:12px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); }
+  .word .txt { font-weight:600; }
+  .word.done .txt { text-decoration: line-through; opacity: .6; }
+  .word .ok { color: var(--found); font-weight:800; }
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="panel main">
+<div class="wrap">
+  <div class="panel">
     <div class="header">
       <div class="title">Forest</div>
-      <div class="muted">Interactive word search — full‑fit scaling; drag to select words.</div>
+      <div class="muted">Interactive word search — grid above, words below. Drag to select (straight or diagonal).</div>
     </div>
     <div class="content">
       <div class="toolbar">
@@ -71,25 +58,15 @@
         <button id="revealBtn" title="Reveal a random remaining word">Reveal one</button>
         <span class="chip" id="timer">00:00</span>
         <span class="chip" id="progress">0 / 0</span>
-        <button id="openWords" title="Show word list">Words ▴</button>
       </div>
       <div class="grid-wrap"><div id="grid" class="grid"></div></div>
     </div>
   </div>
-  <div class="panel side">
-    <div class="header"><div class="title">Find these</div><div class="muted">Tap a word to locate it.</div></div>
-    <div class="content" id="wordsList"></div>
-  </div>
-</div>
 
-<!-- Bottom drawer for phones -->
-<div id="wordsDrawer" class="drawer" aria-hidden="true">
-  <div class="drag"></div>
-  <div class="header">
-    <div class="title">Find these</div>
-    <button id="closeWords">Close</button>
+  <div class="panel words-panel">
+    <div class="header"><div class="title">Find these</div><div class="muted">Completed words move to the bottom and get struck through.</div></div>
+    <div class="content"><div id="wordsList" class="words"></div></div>
   </div>
-  <div class="body"><div id="wordsListMobile"></div></div>
 </div>
 
 <script>
@@ -165,19 +142,10 @@ const answers = PUZZLE.words.map(w => ({ text:w.text, display:w.display_text||w.
 
 const gridEl = document.getElementById('grid');
 const wordsList = document.getElementById('wordsList');
-const wordsListMobile = document.getElementById('wordsListMobile');
-const openWords = document.getElementById('openWords');
-const closeWords = document.getElementById('closeWords');
-const drawer = document.getElementById('wordsDrawer');
 const timerEl = document.getElementById('timer');
 const progressEl = document.getElementById('progress');
 const resetBtn = document.getElementById('resetBtn');
 const revealBtn = document.getElementById('revealBtn');
-
-// Fallback: guarantee the Words button is visible on narrow screens even if a CSS quirk hides it
-if (window.innerWidth <= 640) {
-  openWords.style.display = 'inline-flex';
-}
 
 const grid=[]; const cellEls=[];
 for(let r=0;r<rows;r++){
@@ -194,23 +162,22 @@ for(let r=0;r<rows;r++){
 
 const wordState=new Map(); answers.forEach(a=>wordState.set(a.text,{found:false}));
 
-function renderWordList(into){
-  into.innerHTML='';
-  answers.forEach(a=>{
-    const row=document.createElement('div'); row.className='word';
+function renderWords(){
+  // Sort: unfinished first, then finished; within each group preserve initial order
+  const unfinished = answers.filter(a=>!wordState.get(a.text).found);
+  const finished = answers.filter(a=>wordState.get(a.text).found);
+  const ordered = [...unfinished, ...finished];
+  wordsList.innerHTML='';
+  ordered.forEach(a=>{
+    const row=document.createElement('div'); row.className='word'+(wordState.get(a.text).found?' done':'');
     const l=document.createElement('div'); l.className='txt'; l.textContent=a.display;
     const ok=document.createElement('div'); ok.className='ok'; ok.textContent=wordState.get(a.text).found?'✓':'';
     row.append(l,ok);
-    row.onclick=()=>{ const [r,c]=a.path[0]; const el=cellEls[r][c]; el.classList.add('hover'); setTimeout(()=>el.classList.remove('hover'),600); };
-    into.appendChild(row);
+    row.onclick=()=>{ const [r,c]=a.path[0]; const el=cellEls[r][c]; el.scrollIntoView({block:'center', inline:'center', behavior:'smooth'}); el.classList.add('hover'); setTimeout(()=>el.classList.remove('hover'),600); };
+    wordsList.appendChild(row);
   });
 }
-
-function updateWordLists(){
-  renderWordList(wordsList);
-  renderWordList(wordsListMobile);
-}
-updateWordLists();
+renderWords();
 
 function coordsEqual(a,b){return a[0]==b[0]&&a[1]==b[1];}
 function pathEquals(p1,p2){ if(p1.length!==p2.length) return false; for(let i=0;i<p1.length;i++) if(!coordsEqual(p1[i],p2[i])) return false; return true; }
@@ -220,7 +187,7 @@ let isDown=false,start=null,preview=new Set(),foundPaths=[];
 function clearPreview(){ preview.forEach(k=>{ const [r,c]=k.split(',').map(Number); cellEls[r][c].classList.remove('preview','selected'); }); preview.clear(); }
 function markFound(p){ foundPaths.push(p); p.forEach(([r,c])=>cellEls[r][c].classList.add('found')); }
 function refreshProgress(){ const n=answers.filter(a=>wordState.get(a.text).found).length; progressEl.textContent=`${n} / ${answers.length}`; }
-function tryCommit(r0,c0,r1,c1){ const sel=genLinePath(r0,c0,r1,c1); if(!sel.length) return false; for(const ans of answers){ if(wordState.get(ans.text).found) continue; if(pathEquals(sel,ans.path)||pathEquals(sel,reversePath(ans.path))){ wordState.get(ans.text).found=true; markFound(sel); updateWordLists(); refreshProgress(); checkWin(); return true; } } sel.forEach(([r,c])=>cellEls[r][c].classList.add('selected')); setTimeout(()=>sel.forEach(([r,c])=>cellEls[r][c].classList.remove('selected')),220); return false; }
+function tryCommit(r0,c0,r1,c1){ const sel=genLinePath(r0,c0,r1,c1); if(!sel.length) return false; for(const ans of answers){ if(wordState.get(ans.text).found) continue; if(pathEquals(sel,ans.path)||pathEquals(sel,reversePath(ans.path))){ wordState.get(ans.text).found=true; markFound(sel); renderWords(); refreshProgress(); checkWin(); return true; } } sel.forEach(([r,c])=>cellEls[r][c].classList.add('selected')); setTimeout(()=>sel.forEach(([r,c])=>cellEls[r][c].classList.remove('selected')),220); return false; }
 function checkWin(){ if(answers.every(a=>wordState.get(a.text).found)){ const secs=Math.floor((Date.now()-startTime)/1000); const mm=String(Math.floor(secs/60)).padStart(2,'0'); const ss=String(secs%60).padStart(2,'0'); alert(`All done! Time: ${mm}:${ss}`); } }
 
 function cellFromEvent(e){ if(e.touches&&e.touches.length){ const t=e.touches[0]; const el=document.elementFromPoint(t.clientX,t.clientY); if(!el||!el.classList.contains('cell')) return null; return [+el.dataset.r,+el.dataset.c]; } else { const el=e.target.closest('.cell'); if(!el) return null; return [+el.dataset.r,+el.dataset.c]; } }
@@ -237,32 +204,17 @@ bind(window,'touchend', e=>{ if(!isDown) return; isDown=false; let end=start; if
 // Timer
 let startTime=Date.now(); setInterval(()=>{ const secs=Math.floor((Date.now()-startTime)/1000); const mm=String(Math.floor(secs/60)).padStart(2,'0'); const ss=String(secs%60).padStart(2,'0'); timerEl.textContent = mm+':'+ss; }, 1000);
 
-// Fit-to-viewport calculation tuned for iPhone
+// Fit the grid within .grid-wrap
 function computeFit(){
-  const header=document.querySelector('.panel.main .header');
-  const content=document.querySelector('.panel.main .content');
-  const headerH=header.getBoundingClientRect().height;
-  const toolbarH=content.querySelector('.toolbar').getBoundingClientRect().height;
-  const cs=getComputedStyle(content);
-  const contentPY=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
-  const contentPX=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight);
-  const rect=document.querySelector('.panel.main').getBoundingClientRect();
-
-  const vvh = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
-
-  const availW=rect.width-contentPX;
-  const availH=Math.min(rect.height, vvh) - headerH - toolbarH - contentPY - 8;
-
-  const vw=innerWidth; let sideW=Math.min(360, Math.max(240, Math.floor(vw*0.3)));
-  if(vw<600) sideW=vw-24; document.documentElement.style.setProperty('--sideW', sideW+'px');
-
+  const wrap = document.querySelector('.grid-wrap');
+  const rect = wrap.getBoundingClientRect();
+  const vw=innerWidth;
   const gap = vw<520 ? 1 : (vw<760 ? 2 : 4);
   document.documentElement.style.setProperty('--gap', gap+'px');
-
   const totalGapW=gap*(cols-1); const totalGapH=gap*(rows-1);
-  const maxCellW=(availW-totalGapW)/cols; const maxCellH=(availH-totalGapH)/rows;
+  const maxCellW=(rect.width-totalGapW)/cols; const maxCellH=(rect.height-totalGapH)/rows;
   let cell=Math.floor(Math.max(8, Math.min(maxCellW,maxCellH)));
-  cell=Math.min(cell, 44);
+  cell=Math.min(cell, 48);
   document.documentElement.style.setProperty('--cell', cell+'px');
 }
 let rAF=null; function scheduleFit(){ if(rAF) cancelAnimationFrame(rAF); rAF=requestAnimationFrame(()=>{ computeFit(); rAF=null; }); }
@@ -270,35 +222,9 @@ addEventListener('resize', scheduleFit); addEventListener('orientationchange', s
 scheduleFit();
 refreshProgress();
 
-// Drawer interactions
-function setDrawer(open){ drawer.classList.toggle('open', !!open); drawer.setAttribute('aria-hidden', open? 'false':'true'); }
-openWords?.addEventListener('click', ()=> setDrawer(true));
-closeWords?.addEventListener('click', ()=> setDrawer(false));
-document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') setDrawer(false); });
-drawer.addEventListener('click', (e)=>{ if(e.target===drawer) setDrawer(false); });
-
-// ====== Buttons wired up ======
-function resetGame(){
-  // clear state
-  wordState.forEach((v,k)=>{ v.found=false; });
-  for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) cellEls[r][c].classList.remove('found','preview','selected');
-  startTime = Date.now();
-  updateWordLists();
-  refreshProgress();
-}
-
-function revealOne(){
-  const remaining = answers.filter(a=>!wordState.get(a.text).found);
-  if (!remaining.length) return;
-  const a = remaining[Math.floor(Math.random()*remaining.length)];
-  wordState.get(a.text).found = true;
-  markFound(a.path);
-  updateWordLists();
-  refreshProgress();
-  // Nudge the drawer open on mobile so the user sees the tick
-  if (window.innerWidth <= 640) setDrawer(true);
-}
-
+// Buttons
+function resetGame(){ wordState.forEach(v=>{ v.found=false; }); for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) cellEls[r][c].classList.remove('found','preview','selected'); startTime = Date.now(); renderWords(); refreshProgress(); }
+function revealOne(){ const remaining = answers.filter(a=>!wordState.get(a.text).found); if(!remaining.length) return; const a = remaining[Math.floor(Math.random()*remaining.length)]; wordState.get(a.text).found = true; markFound(a.path); renderWords(); refreshProgress(); }
 resetBtn?.addEventListener('click', resetGame);
 revealBtn?.addEventListener('click', revealOne);
 </script>
