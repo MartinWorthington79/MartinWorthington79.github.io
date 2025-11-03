@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Forest — Wordsearch (Mobile‑optimized)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root { --muted:#9aa3b2; --ink:#e5e7eb; --accent:#60a5fa; --found:#10b981; --cell:28px; --gap:4px; --sideW:360px; }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  /* Use dynamic viewport units on iOS to avoid the URL bar squish */
+  body { height: 100dvh; margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; background: radial-gradient(1200px 800px at 20% -10%, #172554 0%, #0b0e14 60%); color: var(--ink); overflow:hidden; }
+
+  .app { height:100%; width:100%; padding:12px; display:grid; grid-template-columns: 1fr var(--sideW); gap:12px; }
+  .panel { background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); border-radius:18px; backdrop-filter: blur(8px); overflow:hidden; display:flex; flex-direction:column; min-height:0; }
+  .header { padding:10px 12px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .title { font-weight:800; font-size:16px; letter-spacing:.2px; }
+  .muted { color: var(--muted); font-size:12px; }
+  .content { padding:10px; display:flex; flex-direction:column; gap:8px; min-height:0; flex:1; }
+  .grid-wrap { flex:1; min-height:0; overflow:hidden; display:grid; place-items:center; }
+  .grid { --rows:30; --cols:20; display:grid; grid-template-columns: repeat(var(--cols), var(--cell)); grid-auto-rows: var(--cell); gap: var(--gap); user-select:none; touch-action:none; }
+  .cell { width:var(--cell); height:var(--cell); line-height:var(--cell); text-align:center; border-radius:8px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.06); font-weight:700; font-size:calc(var(--cell)*.5); }
+  .cell.empty { background:transparent; border-color:transparent; pointer-events:none; }
+  .cell.hover { outline:2px solid var(--accent); }
+  .cell.preview { background: rgba(96,165,250,.25); border-color: rgba(96,165,250,.6); }
+  .cell.selected { background: rgba(34,211,238,.35); border-color: rgba(34,211,238,.8); }
+  .cell.found { background: rgba(16,185,129,.35); border-color: rgba(16,185,129,.9); }
+
+  .toolbar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  button { background:linear-gradient(180deg,#1f2937,#111827); color:#eef2ff; border:1px solid rgba(255,255,255,.1); padding:8px 10px; border-radius:12px; cursor:pointer; font-weight:700; font-size:12px; }
+  .chip{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08); border-radius:999px; font-size:12px; color:var(--muted); }
+
+  .side .content { overflow:auto; }
+  .side .word { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:12px; }
+  .side .word:nth-child(odd) { background: rgba(255,255,255,.03); }
+  .ok { color: var(--found); font-weight:800; }
+
+  /* ——— Mobile tweaks ——— */
+  @media (max-width: 900px){ :root { --gap:3px; } }
+  @media (max-width: 780px){ :root { --gap:2px; } }
+
+  /* Collapse to single column and hide the sidebar; show a floating drawer button */
+  @media (max-width: 600px){
+    .app { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+    :root { --sideW: 100%; }
+    .side { display:none; }
+    #openWords { display:inline-flex; }
+  }
+
+  /* Bottom sheet (drawer) for the word list on phones */
+  #openWords { display:none; align-items:center; gap:6px; }
+  .drawer { position: fixed; left:0; right:0; bottom:-70dvh; height: 60dvh; backdrop-filter: blur(10px); background: rgba(17,24,39,.9); border-top-left-radius: 18px; border-top-right-radius: 18px; border: 1px solid rgba(255,255,255,.08); box-shadow: 0 -10px 30px rgba(0,0,0,.35); transition: bottom .28s ease; z-index: 50; display:flex; flex-direction:column; }
+  .drawer.open { bottom: 0; }
+  .drawer .drag { width: 46px; height: 4px; background: rgba(255,255,255,.35); border-radius: 999px; margin: 10px auto; }
+  .drawer .body { flex:1; overflow:auto; padding: 6px 12px 14px; }
+  .drawer .header { border-bottom: none; display:flex; align-items:center; justify-content:space-between; padding: 6px 12px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="panel main">
+    <div class="header">
+      <div class="title">Forest</div>
+      <div class="muted">Interactive word search — full‑fit scaling; drag to select words.</div>
+    </div>
+    <div class="content">
+      <div class="toolbar">
+        <button id="resetBtn" title="Clear all progress">Reset</button>
+        <button id="revealBtn" title="Reveal a random remaining word">Reveal one</button>
+        <span class="chip" id="timer">00:00</span>
+        <span class="chip" id="progress">0 / 0</span>
+        <button id="openWords" title="Show word list">Words ▴</button>
+      </div>
+      <div class="grid-wrap"><div id="grid" class="grid"></div></div>
+    </div>
+  </div>
+  <div class="panel side">
+    <div class="header"><div class="title">Find these</div><div class="muted">Tap a word to locate it.</div></div>
+    <div class="content" id="wordsList"></div>
+  </div>
+</div>
+
+<!-- Bottom drawer for phones -->
+<div id="wordsDrawer" class="drawer" aria-hidden="true">
+  <div class="drag"></div>
+  <div class="header">
+    <div class="title">Find these</div>
+    <button id="closeWords">Close</button>
+  </div>
+  <div class="body"><div id="wordsListMobile"></div></div>
+</div>
+
+<script>
+// ====== Embedded puzzle JSON (same content as before) ======
+const PUZZLE = {
+  "puzzle_id": "new_20251103142318",
+  "puzzle_name": "Untitled Puzzle",
+  "grid": [
+    "                    ",
+    "        BCPZ        ",
+    "      YADHCTAM      ",
+    "     ITPJAEQZYH     ",
+    "    HUAUDMCAKNVS    ",
+    "    YFACUPRSILIE    ",
+    "    EDANKSAGERVE    ",
+    "   ROLYATRETEPARL   ",
+    "   ELPKEILPLGMNTE   ",
+    "  QHDERPDPTYDIDYAY  ",
+    "  PUBICOLTRAIREKGE  ",
+    "  MWIHURAOAXRARCUL  ",
+    " HXKGGPUBLUXBCSIEBM ",
+    " SUMHUGEIMTSTLORCMM ",
+    " HYTEOLMRUSINENTUEU ",
+    " ZYZALOYALTCEMIRPWP ",
+    "  EPDCRSGLANREDEHJ  ",
+    "     MYPFONATNZ     ",
+    "         FCR        ",
+    "         KOF        ",
+    "         ILR        ",
+    "  UVA    NLO   FXI  ",
+    "  RCHKI  TYV HSABL  ",
+    "  JSDERUOYMEEHZEVN  ",
+    "  JUMDOAORORIZHGXJ  ",
+    "  JOHNROBERTSONOPC  ",
+    "  ALOLLIMMEGEIHCRA  ",
+    "  Q  DNUORGYTIC  A  ",
+    "       XSZXMF       ",
+    "          Q         "
+  ],
+  "words": [
+    {"text":"PETERTAYLOR","display_text":"Peter Taylor","path":[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8],[7,7],[7,6],[7,5],[7,4],[7,3]]},
+    {"text":"CITYGROUND","display_text":"City Ground","path":[[27,14],[27,13],[27,12],[27,11],[27,10],[27,9],[27,8],[27,7],[27,6],[27,5]]},
+    {"text":"EUROPEANCUP","display_text":"European Cup","path":[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7],[7,7],[6,7],[5,7],[4,7],[3,7]]},
+    {"text":"GARIBALDI","display_text":"Garibaldi","path":[[16,8],[15,8],[14,8],[13,8],[12,8],[11,8],[10,8],[9,8],[8,8]]},
+    {"text":"YOUREDS","display_text":"You Reds","path":[[23,9],[23,8],[23,7],[23,6],[23,5],[23,4],[23,3]]},
+    {"text":"LEAGUECUP","display_text":"League Cup","path":[[7,16],[8,16],[9,16],[10,16],[11,16],[12,16],[13,16],[14,16],[15,16]]},
+    {"text":"FACUP","display_text":"FA Cup","path":[[5,5],[5,6],[5,7],[5,8],[5,9]]},
+    {"text":"WEMBLEY","display_text":"Wembley","path":[[15,17],[14,17],[13,17],[12,17],[11,17],[10,17],[9,17]]},
+    {"text":"MIRACLEMEN","display_text":"Miracle Men","path":[[8,13],[9,13],[10,13],[11,13],[12,13],[13,13],[14,13],[15,13],[16,13],[17,13]]},
+    {"text":"CLOUGHIE","display_text":"Cloughie","path":[[16,5],[15,5],[14,5],[13,5],[12,5],[11,5],[10,5],[9,5]]},
+    {"text":"STANCOLLYMORE","display_text":"Stan Collymore","path":[[14,10],[15,10],[16,10],[17,10],[18,10],[19,10],[20,10],[21,10],[22,10],[23,10],[24,10],[25,10],[26,10]]},
+    {"text":"STUARTPEARCE","display_text":"Stuart Pearce","path":[[14,10],[13,10],[12,10],[11,10],[10,10],[9,10],[8,10],[7,10],[6,10],[5,10],[4,10],[3,10]]},
+    {"text":"JOHNROBERTSON","display_text":"John Robertson","path":[[25,2],[25,3],[25,4],[25,5],[25,6],[25,7],[25,8],[25,9],[25,10],[25,11],[25,12],[25,13],[25,14]]},
+    {"text":"VIVANDERSON","display_text":"Viv Anderson","path":[[4,14],[5,14],[6,14],[7,14],[8,14],[9,14],[10,14],[11,14],[12,14],[13,14],[14,14]]},
+    {"text":"TREVORFRANCIS","display_text":"Trevor Francis","path":[[25,11],[24,11],[23,11],[22,11],[21,11],[20,11],[19,11],[18,11],[17,11],[16,11],[15,11],[14,11],[13,11]]},
+    {"text":"ARCHIEGEMMILL","display_text":"Archie Gemmill","path":[[26,17],[26,16],[26,15],[26,14],[26,13],[26,12],[26,11],[26,10],[26,9],[26,8],[26,7],[26,6],[26,5]]},
+    {"text":"NIGELDOUGHTY","display_text":"Nigel Doughty","path":[[4,13],[5,12],[6,11],[7,10],[8,9],[9,8],[10,7],[11,6],[12,5],[13,4],[14,3],[15,2]]},
+    {"text":"TRENTBRIDGE","display_text":"Trent Bridge","path":[[17,12],[16,12],[15,12],[14,12],[13,12],[12,12],[11,12],[10,12],[9,12],[8,12],[7,12]]},
+    {"text":"MATCHDAY","display_text":"Matchday","path":[[2,13],[2,12],[2,11],[2,10],[2,9],[2,8],[2,7],[2,6]]},
+    {"text":"CUPGLORY","display_text":"Cup Glory","path":[[10,6],[11,6],[12,6],[13,6],[14,6],[15,6],[16,6],[17,6]]},
+    {"text":"OLDBIGHEAD","display_text":"Old Big Head","path":[[7,4],[8,4],[9,4],[10,4],[11,4],[12,4],[13,4],[14,4],[15,4],[16,4]]},
+    {"text":"TRICKYTREES","display_text":"Tricky Trees","path":[[14,15],[13,15],[12,15],[11,15],[10,15],[9,15],[8,15],[7,15],[6,15],[5,15],[4,15]]},
+    {"text":"CHAMPS","display_text":"1979 Champs","path":[[1,9],[2,9],[3,9],[4,9],[5,9],[6,9]]},
+    {"text":"MULLOFKINTYRE","display_text":"Mull of Kintyre","path":[[13,9],[14,9],[15,9],[16,9],[17,9],[18,9],[19,9],[20,9],[21,9],[22,9],[23,9],[24,9],[25,9]]}
+  ],
+  "settings": { "rows": 30, "cols": 20 }
+};
+
+// ====== Build grid ======
+const rows = PUZZLE.settings.rows, cols = PUZZLE.settings.cols;
+const gridStrings = PUZZLE.grid;
+const answers = PUZZLE.words.map(w => ({ text:w.text, display:w.display_text||w.text, path:w.path.map(([r,c])=>[r,c]) }));
+
+const gridEl = document.getElementById('grid');
+const wordsList = document.getElementById('wordsList');
+const wordsListMobile = document.getElementById('wordsListMobile');
+const openWords = document.getElementById('openWords');
+const closeWords = document.getElementById('closeWords');
+const drawer = document.getElementById('wordsDrawer');
+const timerEl = document.getElementById('timer');
+const progressEl = document.getElementById('progress');
+
+const grid=[]; const cellEls=[];
+for(let r=0;r<rows;r++){
+  grid[r]=[]; cellEls[r]=[]; const line=gridStrings[r]||"";
+  for(let c=0;c<cols;c++){
+    const ch=(line[c]||' ');
+    grid[r][c]=ch;
+    const el=document.createElement('div');
+    el.className='cell'+(ch.trim()===''?' empty':'');
+    el.dataset.r=r; el.dataset.c=c; el.textContent=ch.trim()===''?'':ch;
+    gridEl.appendChild(el); cellEls[r][c]=el;
+  }
+}
+
+const wordState=new Map(); answers.forEach(a=>wordState.set(a.text,{found:false}));
+
+function renderWordList(into){
+  into.innerHTML='';
+  answers.forEach(a=>{
+    const row=document.createElement('div'); row.className='word';
+    const l=document.createElement('div'); l.className='txt'; l.textContent=a.display;
+    const ok=document.createElement('div'); ok.className='ok'; ok.textContent=wordState.get(a.text).found?'✓':'';
+    row.append(l,ok);
+    row.onclick=()=>{ const [r,c]=a.path[0]; const el=cellEls[r][c]; el.classList.add('hover'); setTimeout(()=>el.classList.remove('hover'),600); };
+    into.appendChild(row);
+  });
+}
+
+function updateWordLists(){
+  renderWordList(wordsList);
+  renderWordList(wordsListMobile);
+}
+updateWordLists();
+
+function coordsEqual(a,b){return a[0]==b[0]&&a[1]==b[1];}
+function pathEquals(p1,p2){ if(p1.length!==p2.length) return false; for(let i=0;i<p1.length;i++) if(!coordsEqual(p1[i],p2[i])) return false; return true; }
+function reversePath(p){ return [...p].reverse(); }
+function genLinePath(r0,c0,r1,c1){ let dr=r1-r0, dc=c1-c0; const steps=Math.max(Math.abs(dr),Math.abs(dc)); if(steps===0) return [[r0,c0]]; const stepR=dr===0?0:(dr/Math.abs(dr)); const stepC=dc===0?0:(dc/Math.abs(dc)); if(!((stepR===0||stepC===0)||(Math.abs(dr)===Math.abs(dc)))) return []; const path=[]; let r=r0,c=c0; for(let i=0;i<=steps;i++){ path.push([r,c]); r+=stepR; c+=stepC; } return path; }
+let isDown=false,start=null,preview=new Set(),foundPaths=[];
+function clearPreview(){ preview.forEach(k=>{ const [r,c]=k.split(',').map(Number); cellEls[r][c].classList.remove('preview','selected'); }); preview.clear(); }
+function markFound(p){ foundPaths.push(p); p.forEach(([r,c])=>cellEls[r][c].classList.add('found')); }
+function refreshProgress(){ const n=answers.filter(a=>wordState.get(a.text).found).length; progressEl.textContent=`${n} / ${answers.length}`; }
+function tryCommit(r0,c0,r1,c1){ const sel=genLinePath(r0,c0,r1,c1); if(!sel.length) return false; for(const ans of answers){ if(wordState.get(ans.text).found) continue; if(pathEquals(sel,ans.path)||pathEquals(sel,reversePath(ans.path))){ wordState.get(ans.text).found=true; markFound(sel); updateWordLists(); refreshProgress(); checkWin(); return true; } } sel.forEach(([r,c])=>cellEls[r][c].classList.add('selected')); setTimeout(()=>sel.forEach(([r,c])=>cellEls[r][c].classList.remove('selected')),220); return false; }
+function checkWin(){ if(answers.every(a=>wordState.get(a.text).found)){ const secs=Math.floor((Date.now()-startTime)/1000); const mm=String(Math.floor(secs/60)).padStart(2,'0'); const ss=String(secs%60).padStart(2,'0'); alert(`All done! Time: ${mm}:${ss}`); } }
+
+function cellFromEvent(e){ if(e.touches&&e.touches.length){ const t=e.touches[0]; const el=document.elementFromPoint(t.clientX,t.clientY); if(!el||!el.classList.contains('cell')) return null; return [+el.dataset.r,+el.dataset.c]; } else { const el=e.target.closest('.cell'); if(!el) return null; return [+el.dataset.r,+el.dataset.c]; } }
+
+const gridRoot=document.getElementById('grid');
+const bind = (el, ev, fn, opts)=> el.addEventListener(ev, fn, opts||false);
+bind(gridRoot,'mousedown', e=>{ const pos=cellFromEvent(e); if(!pos) return; const [r,c]=pos; if(grid[r][c].trim()==='') return; isDown=true; start=pos; clearPreview(); e.preventDefault(); });
+bind(gridRoot,'mousemove', e=>{ if(!isDown) return; const pos=cellFromEvent(e); if(!pos) return; clearPreview(); const sel=genLinePath(start[0],start[1],pos[0],pos[1]); sel.forEach(([rr,cc])=>{ if(grid[rr][cc].trim()!==''){ const key=rr+','+cc; preview.add(key); cellEls[rr][cc].classList.add('preview'); } }); });
+bind(window,'mouseup', e=>{ if(!isDown) return; const pos=cellFromEvent(e)||start; isDown=false; tryCommit(start[0],start[1],pos[0],pos[1]); clearPreview(); });
+bind(gridRoot,'touchstart', e=>{ const pos=cellFromEvent(e); if(!pos) return; const [r,c]=pos; if(grid[r][c].trim()==='') return; isDown=true; start=pos; clearPreview(); }, {passive:true});
+bind(gridRoot,'touchmove', e=>{ if(!isDown) return; const pos=cellFromEvent(e); if(!pos) return; clearPreview(); const sel=genLinePath(start[0],start[1],pos[0],pos[1]); sel.forEach(([rr,cc])=>{ if(grid[rr][cc].trim()!==''){ const key=rr+','+cc; preview.add(key); cellEls[rr][cc].classList.add('preview'); } }); }, {passive:true});
+bind(window,'touchend', e=>{ if(!isDown) return; isDown=false; let end=start; if(preview.size){ const last=Array.from(preview).pop().split(',').map(Number); end=last; } tryCommit(start[0],start[1],end[0],end[1]); clearPreview(); }, {passive:true});
+
+// Timer
+let startTime=Date.now(); setInterval(()=>{ const secs=Math.floor((Date.now()-startTime)/1000); const mm=String(Math.floor(secs/60)).padStart(2,'0'); const ss=String(Math.floor(secs%60)).padStart(2,'0'); timerEl.textContent = mm+':'+ss; }, 1000);
+
+// Fit-to-viewport calculation tuned for iPhone
+function computeFit(){
+  const header=document.querySelector('.panel.main .header');
+  const content=document.querySelector('.panel.main .content');
+  const headerH=header.getBoundingClientRect().height;
+  const toolbarH=content.querySelector('.toolbar').getBoundingClientRect().height;
+  const cs=getComputedStyle(content);
+  const contentPY=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
+  const contentPX=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight);
+  const rect=document.querySelector('.panel.main').getBoundingClientRect();
+
+  // Prefer visualViewport on iOS Safari for accurate height
+  const vvh = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
+
+  const availW=rect.width-contentPX;
+  const availH=Math.min(rect.height, vvh) - headerH - toolbarH - contentPY - 8;
+
+  const vw=innerWidth; let sideW=Math.min(360, Math.max(240, Math.floor(vw*0.3)));
+  if(vw<600) sideW=vw-24; document.documentElement.style.setProperty('--sideW', sideW+'px');
+
+  const gap = vw<520 ? 1 : (vw<760 ? 2 : 4);
+  document.documentElement.style.setProperty('--gap', gap+'px');
+
+  const totalGapW=gap*(cols-1); const totalGapH=gap*(rows-1);
+  const maxCellW=(availW-totalGapW)/cols; const maxCellH=(availH-totalGapH)/rows;
+  let cell=Math.floor(Math.max(8, Math.min(maxCellW,maxCellH)));
+  cell=Math.min(cell, 44); // cap to keep tap targets reasonable
+  document.documentElement.style.setProperty('--cell', cell+'px');
+}
+let rAF=null; function scheduleFit(){ if(rAF) cancelAnimationFrame(rAF); rAF=requestAnimationFrame(()=>{ computeFit(); rAF=null; }); }
+addEventListener('resize', scheduleFit); addEventListener('orientationchange', scheduleFit);
+scheduleFit();
+refreshProgress();
+
+// Drawer interactions
+function setDrawer(open){ drawer.classList.toggle('open', !!open); drawer.setAttribute('aria-hidden', open? 'false':'true'); }
+openWords?.addEventListener('click', ()=> setDrawer(true));
+closeWords?.addEventListener('click', ()=> setDrawer(false));
+
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') setDrawer(false); });
+
+drawer.addEventListener('click', (e)=>{ if(e.target===drawer) setDrawer(false); });
+</script>
+</body>
+</html>
