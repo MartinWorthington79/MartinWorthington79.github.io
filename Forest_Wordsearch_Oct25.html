@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Forest — Wordsearch (Mobile‑optimized)</title>
+<title>Forest — Wordsearch (Mobile‑optimized, buttons fixed)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -11,7 +11,6 @@
   :root { --muted:#9aa3b2; --ink:#e5e7eb; --accent:#60a5fa; --found:#10b981; --cell:28px; --gap:4px; --sideW:360px; }
   * { box-sizing:border-box; }
   html,body { height:100%; }
-  /* Use dynamic viewport units on iOS to avoid the URL bar squish */
   body { height: 100dvh; margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; background: radial-gradient(1200px 800px at 20% -10%, #172554 0%, #0b0e14 60%); color: var(--ink); overflow:hidden; }
 
   .app { height:100%; width:100%; padding:12px; display:grid; grid-template-columns: 1fr var(--sideW); gap:12px; }
@@ -38,20 +37,20 @@
   .side .word:nth-child(odd) { background: rgba(255,255,255,.03); }
   .ok { color: var(--found); font-weight:800; }
 
+  /* Show the Words button by default so it's always available */
+  #openWords { display:inline-flex; align-items:center; gap:6px; }
+
   /* ——— Mobile tweaks ——— */
   @media (max-width: 900px){ :root { --gap:3px; } }
   @media (max-width: 780px){ :root { --gap:2px; } }
-
-  /* Collapse to single column and hide the sidebar; show a floating drawer button */
   @media (max-width: 600px){
     .app { grid-template-columns: 1fr; grid-template-rows: 1fr; }
     :root { --sideW: 100%; }
     .side { display:none; }
-    #openWords { display:inline-flex; }
   }
 
   /* Bottom sheet (drawer) for the word list on phones */
-  #openWords { display:none; align-items:center; gap:6px; }
+  #openWords { }
   .drawer { position: fixed; left:0; right:0; bottom:-70dvh; height: 60dvh; backdrop-filter: blur(10px); background: rgba(17,24,39,.9); border-top-left-radius: 18px; border-top-right-radius: 18px; border: 1px solid rgba(255,255,255,.08); box-shadow: 0 -10px 30px rgba(0,0,0,.35); transition: bottom .28s ease; z-index: 50; display:flex; flex-direction:column; }
   .drawer.open { bottom: 0; }
   .drawer .drag { width: 46px; height: 4px; background: rgba(255,255,255,.35); border-radius: 999px; margin: 10px auto; }
@@ -94,7 +93,7 @@
 </div>
 
 <script>
-// ====== Embedded puzzle JSON (same content as before) ======
+// ====== Embedded puzzle JSON (unchanged) ======
 const PUZZLE = {
   "puzzle_id": "new_20251103142318",
   "puzzle_name": "Untitled Puzzle",
@@ -172,6 +171,13 @@ const closeWords = document.getElementById('closeWords');
 const drawer = document.getElementById('wordsDrawer');
 const timerEl = document.getElementById('timer');
 const progressEl = document.getElementById('progress');
+const resetBtn = document.getElementById('resetBtn');
+const revealBtn = document.getElementById('revealBtn');
+
+// Fallback: guarantee the Words button is visible on narrow screens even if a CSS quirk hides it
+if (window.innerWidth <= 640) {
+  openWords.style.display = 'inline-flex';
+}
 
 const grid=[]; const cellEls=[];
 for(let r=0;r<rows;r++){
@@ -229,7 +235,7 @@ bind(gridRoot,'touchmove', e=>{ if(!isDown) return; const pos=cellFromEvent(e); 
 bind(window,'touchend', e=>{ if(!isDown) return; isDown=false; let end=start; if(preview.size){ const last=Array.from(preview).pop().split(',').map(Number); end=last; } tryCommit(start[0],start[1],end[0],end[1]); clearPreview(); }, {passive:true});
 
 // Timer
-let startTime=Date.now(); setInterval(()=>{ const secs=Math.floor((Date.now()-startTime)/1000); const mm=String(Math.floor(secs/60)).padStart(2,'0'); const ss=String(Math.floor(secs%60)).padStart(2,'0'); timerEl.textContent = mm+':'+ss; }, 1000);
+let startTime=Date.now(); setInterval(()=>{ const secs=Math.floor((Date.now()-startTime)/1000); const mm=String(Math.floor(secs/60)).padStart(2,'0'); const ss=String(secs%60).padStart(2,'0'); timerEl.textContent = mm+':'+ss; }, 1000);
 
 // Fit-to-viewport calculation tuned for iPhone
 function computeFit(){
@@ -242,7 +248,6 @@ function computeFit(){
   const contentPX=parseFloat(cs.paddingLeft)+parseFloat(cs.paddingRight);
   const rect=document.querySelector('.panel.main').getBoundingClientRect();
 
-  // Prefer visualViewport on iOS Safari for accurate height
   const vvh = (window.visualViewport && window.visualViewport.height) ? window.visualViewport.height : window.innerHeight;
 
   const availW=rect.width-contentPX;
@@ -257,7 +262,7 @@ function computeFit(){
   const totalGapW=gap*(cols-1); const totalGapH=gap*(rows-1);
   const maxCellW=(availW-totalGapW)/cols; const maxCellH=(availH-totalGapH)/rows;
   let cell=Math.floor(Math.max(8, Math.min(maxCellW,maxCellH)));
-  cell=Math.min(cell, 44); // cap to keep tap targets reasonable
+  cell=Math.min(cell, 44);
   document.documentElement.style.setProperty('--cell', cell+'px');
 }
 let rAF=null; function scheduleFit(){ if(rAF) cancelAnimationFrame(rAF); rAF=requestAnimationFrame(()=>{ computeFit(); rAF=null; }); }
@@ -269,10 +274,33 @@ refreshProgress();
 function setDrawer(open){ drawer.classList.toggle('open', !!open); drawer.setAttribute('aria-hidden', open? 'false':'true'); }
 openWords?.addEventListener('click', ()=> setDrawer(true));
 closeWords?.addEventListener('click', ()=> setDrawer(false));
-
 document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') setDrawer(false); });
-
 drawer.addEventListener('click', (e)=>{ if(e.target===drawer) setDrawer(false); });
+
+// ====== Buttons wired up ======
+function resetGame(){
+  // clear state
+  wordState.forEach((v,k)=>{ v.found=false; });
+  for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) cellEls[r][c].classList.remove('found','preview','selected');
+  startTime = Date.now();
+  updateWordLists();
+  refreshProgress();
+}
+
+function revealOne(){
+  const remaining = answers.filter(a=>!wordState.get(a.text).found);
+  if (!remaining.length) return;
+  const a = remaining[Math.floor(Math.random()*remaining.length)];
+  wordState.get(a.text).found = true;
+  markFound(a.path);
+  updateWordLists();
+  refreshProgress();
+  // Nudge the drawer open on mobile so the user sees the tick
+  if (window.innerWidth <= 640) setDrawer(true);
+}
+
+resetBtn?.addEventListener('click', resetGame);
+revealBtn?.addEventListener('click', revealOne);
 </script>
 </body>
 </html>
