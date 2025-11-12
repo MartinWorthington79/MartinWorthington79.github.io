@@ -264,7 +264,8 @@ body.lb-locked .app{filter:grayscale(.4) blur(1px);pointer-events:none;}
   </div>
   <div class="panel side">
     <div class="header"><div class="title">Find these</div><div class="muted">Click a word to locate its start</div></div>
-    <div class="content" id="wordsList">        <div class="word" data-word="ADVENTURE"><div class="txt">Adventure</div><div class="ok"></div></div>
+    <div class="content">
+      <div id="wordsList">        <div class="word" data-word="ADVENTURE"><div class="txt">Adventure</div><div class="ok"></div></div>
         <div class="word" data-word="ALWAYS"><div class="txt">Always</div><div class="ok"></div></div>
         <div class="word" data-word="BELONG"><div class="txt">Belong</div><div class="ok"></div></div>
         <div class="word" data-word="CARE"><div class="txt">Care</div><div class="ok"></div></div>
@@ -280,21 +281,7 @@ body.lb-locked .app{filter:grayscale(.4) blur(1px);pointer-events:none;}
         <div class="word" data-word="TEAM"><div class="txt">Team</div><div class="ok"></div></div>
         <div class="word" data-word="TOGETHER"><div class="txt">Together</div><div class="ok"></div></div>
         <div class="word" data-word="TRUST"><div class="txt">Trust</div><div class="ok"></div></div></div>
-  </div>
-</div>
-<div class="lb-overlay" id="lb-overlay">
-  <form class="lb-modal" id="lb-form">
-    <h2>Join the leaderboard</h2>
-    <p>Before you start, enter your name so we can record your desktop time.</p>
-    <label for="lb-name">Display name</label>
-    <input type="text" id="lb-name" name="lb-name" maxlength="40" autocomplete="name" placeholder="e.g. Alex" />
-    <p class="lb-warning" id="lb-warning"></p>
-    <div class="lb-actions">
-      <button type="submit">Start puzzle</button>
-    </div>
-  </form>
-</div>
-<div class="lb-panel" id="lb-panel">
+      <div class="lb-panel" id="lb-panel">
   <div class="lb-panel-head">
     <div>
       <div class="lb-panel-title">Desktop leaderboard</div>
@@ -308,6 +295,22 @@ body.lb-locked .app{filter:grayscale(.4) blur(1px);pointer-events:none;}
   <div class="lb-status" id="lb-status">Waiting for player…</div>
   <ol class="lb-list" id="lb-list"></ol>
   <div class="lb-empty" id="lb-empty">No attempts yet. Be the first!</div>
+</div>
+
+    </div>
+  </div>
+</div>
+<div class="lb-overlay" id="lb-overlay">
+  <form class="lb-modal" id="lb-form">
+    <h2>Join the leaderboard</h2>
+    <p>Before you start, enter your name so we can record your desktop time.</p>
+    <label for="lb-name">Display name</label>
+    <input type="text" id="lb-name" name="lb-name" maxlength="40" autocomplete="name" placeholder="e.g. Alex" />
+    <p class="lb-warning" id="lb-warning"></p>
+    <div class="lb-actions">
+      <button type="submit">Start puzzle</button>
+    </div>
+  </form>
 </div>
 
 <script>
