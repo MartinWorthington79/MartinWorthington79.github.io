@@ -1,0 +1,536 @@
+<!doctype html>
+<html><head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>9781464293245-Forever friends — Desktop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root { --muted:#6b7280; --ink:#e5e7eb; --accent:#60a5fa; --found:#10b981; --cell:28px; --gap:4px; --sideW:360px; }
+*{box-sizing:border-box} html,body{height:100%}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:radial-gradient(1200px 800px at 20% -10%,#172554 0%,#0b0e14 60%); color:var(--ink); overflow:hidden}
+.app{height:100%;display:grid;grid-template-columns:1fr var(--sideW);gap:16px;padding:16px}
+.panel{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);border-radius:18px;backdrop-filter:blur(8px);overflow:hidden;display:flex;flex-direction:column}
+.header{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06)} .title{font-weight:800}
+.content{padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0;flex:1}
+.grid-wrap{flex:1;min-height:0;overflow:hidden;display:grid;place-items:center}
+.grid{--rows:14;--cols:14;display:grid;grid-template-columns:repeat(var(--cols),var(--cell));grid-auto-rows:var(--cell);gap:var(--gap);user-select:none;touch-action:none}
+.cell{width:var(--cell);height:var(--cell);line-height:var(--cell);text-align:center;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);font-weight:700;font-size:calc(var(--cell)*.5)}
+.cell.empty{background:transparent;border-color:transparent;pointer-events:none}
+.cell.hover{outline:2px solid var(--accent)} .cell.preview{background:rgba(96,165,250,.25);border-color:rgba(96,165,250,.6)}
+.cell.selected{background:rgba(34,211,238,.35);border-color:rgba(34,211,238,.8)} .cell.found{background:rgba(16,185,129,.35);border-color:rgba(16,185,129,.9)}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{background:linear-gradient(180deg,#1f2937,#111827);color:#eef2ff;border:1px solid rgba(255,255,255,.1);padding:8px 10px;border-radius:12px;cursor:pointer;font-weight:700;font-size:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:999px;font-size:12px;color:var(--muted)}
+.side .content{overflow:auto}
+.side .word{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:12px}
+.side .word:nth-child(odd){background:rgba(255,255,255,.03)} .ok{color:var(--found);font-weight:800}
+@media (max-width:880px){:root{--sideW:300px}} @media (max-width:760px){.app{grid-template-columns:1fr;grid-template-rows:1fr auto}:root{--sideW:100%}}
+body.lb-locked .app{filter:grayscale(.4) blur(1px);pointer-events:none;}
+.lb-overlay{position:fixed;inset:0;background:rgba(5,8,15,.82);display:flex;align-items:center;justify-content:center;z-index:1200;padding:16px;transition:opacity .2s ease;}
+.lb-overlay.hidden{opacity:0;pointer-events:none;visibility:hidden;}
+.lb-modal{background:rgba(15,23,42,.92);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:24px;max-width:420px;width:100%;box-shadow:0 32px 80px rgba(0,0,0,.45);color:#e5e7eb;}
+.lb-modal h2{margin-top:0;margin-bottom:8px;font-size:24px;font-weight:700;}
+.lb-modal p{margin:0 0 12px 0;line-height:1.5;}
+.lb-modal label{display:block;font-size:13px;letter-spacing:.02em;text-transform:uppercase;margin-bottom:6px;color:#9ca3af;}
+.lb-modal input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.2);color:#fff;font-size:16px;}
+.lb-modal input:focus{outline:2px solid #60a5fa;outline-offset:2px;}
+.lb-warning{min-height:18px;font-size:13px;color:#f87171;}
+.lb-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:16px;}
+.lb-actions button{background:#2563eb;border:none;border-radius:999px;color:#fff;font-weight:600;padding:10px 18px;cursor:pointer;}
+.lb-panel{background:rgba(15,23,42,.6);border:1px solid rgba(255,255,255,.08);border-radius:18px;margin:18px auto;padding:16px;color:#e5e7eb;max-width:520px;backdrop-filter:blur(6px);}
+.lb-panel-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;}
+.lb-panel-title{font-weight:700;font-size:18px;}
+.lb-panel-subtitle{font-size:13px;color:#94a3b8;}
+.lb-panel-actions{display:flex;gap:8px;}
+.lb-panel-actions button{background:rgba(148,163,184,.15);border:1px solid rgba(255,255,255,.12);color:#e5e7eb;border-radius:10px;padding:6px 12px;font-size:12px;cursor:pointer;}
+.lb-status{font-size:13px;color:#94a3b8;margin:8px 0 4px;}
+.lb-list{list-style:none;padding:0;margin:0;}
+.lb-list li{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;}
+.lb-list li:last-child{border-bottom:none;}
+.lb-list .name{font-weight:600;}
+.lb-list .time{font-variant-numeric:tabular-nums;}
+.lb-empty{padding:12px 0;font-size:14px;color:#94a3b8;text-align:center;}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="panel main">
+    <div class="header"><div class="title">9781464293245-Forever friends</div><div class="muted">Desktop layout — drag to select words</div></div>
+    <div class="content">
+      <div class="toolbar">
+        <button id="resetBtn">Reset</button>
+        <button id="revealBtn">Reveal one</button>
+        <span class="chip" id="timer">00:00</span>
+        <span class="chip" id="progress">0 / 0</span>
+      </div>
+      <div class="grid-wrap"><div id="grid" class="grid">        <div class="cell" data-r="0" data-c="0">S</div>
+        <div class="cell" data-r="0" data-c="1">U</div>
+        <div class="cell" data-r="0" data-c="2">D</div>
+        <div class="cell" data-r="0" data-c="3">R</div>
+        <div class="cell" data-r="0" data-c="4">U</div>
+        <div class="cell" data-r="0" data-c="5">G</div>
+        <div class="cell" data-r="0" data-c="6">E</div>
+        <div class="cell" data-r="0" data-c="7">W</div>
+        <div class="cell" data-r="0" data-c="8">W</div>
+        <div class="cell" data-r="0" data-c="9">I</div>
+        <div class="cell" data-r="0" data-c="10">D</div>
+        <div class="cell" data-r="0" data-c="11">O</div>
+        <div class="cell" data-r="0" data-c="12">U</div>
+        <div class="cell" data-r="0" data-c="13">F</div>
+        <div class="cell" data-r="1" data-c="0">N</div>
+        <div class="cell" data-r="1" data-c="1">I</div>
+        <div class="cell" data-r="1" data-c="2">S</div>
+        <div class="cell" data-r="1" data-c="3">T</div>
+        <div class="cell" data-r="1" data-c="4">D</div>
+        <div class="cell" data-r="1" data-c="5">I</div>
+        <div class="cell" data-r="1" data-c="6">A</div>
+        <div class="cell" data-r="1" data-c="7">B</div>
+        <div class="cell" data-r="1" data-c="8">F</div>
+        <div class="cell" data-r="1" data-c="9">C</div>
+        <div class="cell" data-r="1" data-c="10">Y</div>
+        <div class="cell" data-r="1" data-c="11">Q</div>
+        <div class="cell" data-r="1" data-c="12">D</div>
+        <div class="cell" data-r="1" data-c="13">N</div>
+        <div class="cell" data-r="2" data-c="0">V</div>
+        <div class="cell" data-r="2" data-c="1">G</div>
+        <div class="cell" data-r="2" data-c="2">J</div>
+        <div class="cell" data-r="2" data-c="3">R</div>
+        <div class="cell" data-r="2" data-c="4">O</div>
+        <div class="cell" data-r="2" data-c="5">G</div>
+        <div class="cell" data-r="2" data-c="6">D</div>
+        <div class="cell" data-r="2" data-c="7">V</div>
+        <div class="cell" data-r="2" data-c="8">C</div>
+        <div class="cell" data-r="2" data-c="9">Z</div>
+        <div class="cell" data-r="2" data-c="10">L</div>
+        <div class="cell" data-r="2" data-c="11">K</div>
+        <div class="cell" data-r="2" data-c="12">O</div>
+        <div class="cell" data-r="2" data-c="13">P</div>
+        <div class="cell" data-r="3" data-c="0">B</div>
+        <div class="cell" data-r="3" data-c="1">E</div>
+        <div class="cell" data-r="3" data-c="2">L</div>
+        <div class="cell" data-r="3" data-c="3">O</div>
+        <div class="cell" data-r="3" data-c="4">N</div>
+        <div class="cell" data-r="3" data-c="5">G</div>
+        <div class="cell" data-r="3" data-c="6">V</div>
+        <div class="cell" data-r="3" data-c="7">H</div>
+        <div class="cell" data-r="3" data-c="8">I</div>
+        <div class="cell" data-r="3" data-c="9">H</div>
+        <div class="cell" data-r="3" data-c="10">G</div>
+        <div class="cell" data-r="3" data-c="11">U</div>
+        <div class="cell" data-r="3" data-c="12">V</div>
+        <div class="cell" data-r="3" data-c="13">C</div>
+        <div class="cell" data-r="4" data-c="0">G</div>
+        <div class="cell" data-r="4" data-c="1">I</div>
+        <div class="cell" data-r="4" data-c="2">A</div>
+        <div class="cell" data-r="4" data-c="3">P</div>
+        <div class="cell" data-r="4" data-c="4">C</div>
+        <div class="cell" data-r="4" data-c="5">L</div>
+        <div class="cell" data-r="4" data-c="6">E</div>
+        <div class="cell" data-r="4" data-c="7">T</div>
+        <div class="cell" data-r="4" data-c="8">D</div>
+        <div class="cell" data-r="4" data-c="9">N</div>
+        <div class="cell" data-r="4" data-c="10">I</div>
+        <div class="cell" data-r="4" data-c="11">K</div>
+        <div class="cell" data-r="4" data-c="12">H</div>
+        <div class="cell" data-r="4" data-c="13">K</div>
+        <div class="cell" data-r="5" data-c="0">H</div>
+        <div class="cell" data-r="5" data-c="1">G</div>
+        <div class="cell" data-r="5" data-c="2">X</div>
+        <div class="cell" data-r="5" data-c="3">P</div>
+        <div class="cell" data-r="5" data-c="4">A</div>
+        <div class="cell" data-r="5" data-c="5">E</div>
+        <div class="cell" data-r="5" data-c="6">N</div>
+        <div class="cell" data-r="5" data-c="7">T</div>
+        <div class="cell" data-r="5" data-c="8">E</div>
+        <div class="cell" data-r="5" data-c="9">Z</div>
+        <div class="cell" data-r="5" data-c="10">S</div>
+        <div class="cell" data-r="5" data-c="11">O</div>
+        <div class="cell" data-r="5" data-c="12">T</div>
+        <div class="cell" data-r="5" data-c="13">E</div>
+        <div class="cell" data-r="6" data-c="0">K</div>
+        <div class="cell" data-r="6" data-c="1">T</div>
+        <div class="cell" data-r="6" data-c="2">S</div>
+        <div class="cell" data-r="6" data-c="3">U</div>
+        <div class="cell" data-r="6" data-c="4">R</div>
+        <div class="cell" data-r="6" data-c="5">T</div>
+        <div class="cell" data-r="6" data-c="6">T</div>
+        <div class="cell" data-r="6" data-c="7">W</div>
+        <div class="cell" data-r="6" data-c="8">H</div>
+        <div class="cell" data-r="6" data-c="9">A</div>
+        <div class="cell" data-r="6" data-c="10">P</div>
+        <div class="cell" data-r="6" data-c="11">P</div>
+        <div class="cell" data-r="6" data-c="12">Y</div>
+        <div class="cell" data-r="6" data-c="13">I</div>
+        <div class="cell" data-r="7" data-c="0">K</div>
+        <div class="cell" data-r="7" data-c="1">R</div>
+        <div class="cell" data-r="7" data-c="2">G</div>
+        <div class="cell" data-r="7" data-c="3">S</div>
+        <div class="cell" data-r="7" data-c="4">E</div>
+        <div class="cell" data-r="7" data-c="5">Z</div>
+        <div class="cell" data-r="7" data-c="6">U</div>
+        <div class="cell" data-r="7" data-c="7">Y</div>
+        <div class="cell" data-r="7" data-c="8">S</div>
+        <div class="cell" data-r="7" data-c="9">E</div>
+        <div class="cell" data-r="7" data-c="10">M</div>
+        <div class="cell" data-r="7" data-c="11">G</div>
+        <div class="cell" data-r="7" data-c="12">V</div>
+        <div class="cell" data-r="7" data-c="13">W</div>
+        <div class="cell" data-r="8" data-c="0">Y</div>
+        <div class="cell" data-r="8" data-c="1">H</div>
+        <div class="cell" data-r="8" data-c="2">J</div>
+        <div class="cell" data-r="8" data-c="3">I</div>
+        <div class="cell" data-r="8" data-c="4">Y</div>
+        <div class="cell" data-r="8" data-c="5">P</div>
+        <div class="cell" data-r="8" data-c="6">R</div>
+        <div class="cell" data-r="8" data-c="7">E</div>
+        <div class="cell" data-r="8" data-c="8">M</div>
+        <div class="cell" data-r="8" data-c="9">A</div>
+        <div class="cell" data-r="8" data-c="10">R</div>
+        <div class="cell" data-r="8" data-c="11">X</div>
+        <div class="cell" data-r="8" data-c="12">R</div>
+        <div class="cell" data-r="8" data-c="13">S</div>
+        <div class="cell" data-r="9" data-c="0">B</div>
+        <div class="cell" data-r="9" data-c="1">U</div>
+        <div class="cell" data-r="9" data-c="2">L</div>
+        <div class="cell" data-r="9" data-c="3">J</div>
+        <div class="cell" data-r="9" data-c="4">R</div>
+        <div class="cell" data-r="9" data-c="5">A</div>
+        <div class="cell" data-r="9" data-c="6">E</div>
+        <div class="cell" data-r="9" data-c="7">S</div>
+        <div class="cell" data-r="9" data-c="8">P</div>
+        <div class="cell" data-r="9" data-c="9">Z</div>
+        <div class="cell" data-r="9" data-c="10">G</div>
+        <div class="cell" data-r="9" data-c="11">A</div>
+        <div class="cell" data-r="9" data-c="12">H</div>
+        <div class="cell" data-r="9" data-c="13">I</div>
+        <div class="cell" data-r="10" data-c="0">T</div>
+        <div class="cell" data-r="10" data-c="1">J</div>
+        <div class="cell" data-r="10" data-c="2">Y</div>
+        <div class="cell" data-r="10" data-c="3">P</div>
+        <div class="cell" data-r="10" data-c="4">O</div>
+        <div class="cell" data-r="10" data-c="5">J</div>
+        <div class="cell" data-r="10" data-c="6">W</div>
+        <div class="cell" data-r="10" data-c="7">Y</div>
+        <div class="cell" data-r="10" data-c="8">H</div>
+        <div class="cell" data-r="10" data-c="9">Y</div>
+        <div class="cell" data-r="10" data-c="10">Q</div>
+        <div class="cell" data-r="10" data-c="11">E</div>
+        <div class="cell" data-r="10" data-c="12">H</div>
+        <div class="cell" data-r="10" data-c="13">O</div>
+        <div class="cell" data-r="11" data-c="0">I</div>
+        <div class="cell" data-r="11" data-c="1">P</div>
+        <div class="cell" data-r="11" data-c="2">O</div>
+        <div class="cell" data-r="11" data-c="3">H</div>
+        <div class="cell" data-r="11" data-c="4">M</div>
+        <div class="cell" data-r="11" data-c="5">Y</div>
+        <div class="cell" data-r="11" data-c="6">I</div>
+        <div class="cell" data-r="11" data-c="7">L</div>
+        <div class="cell" data-r="11" data-c="8">I</div>
+        <div class="cell" data-r="11" data-c="9">B</div>
+        <div class="cell" data-r="11" data-c="10">Y</div>
+        <div class="cell" data-r="11" data-c="11">I</div>
+        <div class="cell" data-r="11" data-c="12">L</div>
+        <div class="cell" data-r="11" data-c="13">S</div>
+        <div class="cell" data-r="12" data-c="0">Z</div>
+        <div class="cell" data-r="12" data-c="1">H</div>
+        <div class="cell" data-r="12" data-c="2">S</div>
+        <div class="cell" data-r="12" data-c="3">U</div>
+        <div class="cell" data-r="12" data-c="4">E</div>
+        <div class="cell" data-r="12" data-c="5">N</div>
+        <div class="cell" data-r="12" data-c="6">M</div>
+        <div class="cell" data-r="12" data-c="7">S</div>
+        <div class="cell" data-r="12" data-c="8">A</div>
+        <div class="cell" data-r="12" data-c="9">U</div>
+        <div class="cell" data-r="12" data-c="10">U</div>
+        <div class="cell" data-r="12" data-c="11">I</div>
+        <div class="cell" data-r="12" data-c="12">Z</div>
+        <div class="cell" data-r="12" data-c="13">I</div>
+        <div class="cell" data-r="13" data-c="0">J</div>
+        <div class="cell" data-r="13" data-c="1">P</div>
+        <div class="cell" data-r="13" data-c="2">M</div>
+        <div class="cell" data-r="13" data-c="3">F</div>
+        <div class="cell" data-r="13" data-c="4">M</div>
+        <div class="cell" data-r="13" data-c="5">J</div>
+        <div class="cell" data-r="13" data-c="6">Q</div>
+        <div class="cell" data-r="13" data-c="7">A</div>
+        <div class="cell" data-r="13" data-c="8">Y</div>
+        <div class="cell" data-r="13" data-c="9">Q</div>
+        <div class="cell" data-r="13" data-c="10">Q</div>
+        <div class="cell" data-r="13" data-c="11">K</div>
+        <div class="cell" data-r="13" data-c="12">V</div>
+        <div class="cell" data-r="13" data-c="13">R</div></div></div>
+    </div>
+  </div>
+  <div class="panel side">
+    <div class="header"><div class="title">Find these</div><div class="muted">Click a word to locate its start</div></div>
+    <div class="content" id="wordsList">        <div class="word" data-word="ADVENTURE"><div class="txt">Adventure</div><div class="ok"></div></div>
+        <div class="word" data-word="ALWAYS"><div class="txt">Always</div><div class="ok"></div></div>
+        <div class="word" data-word="BELONG"><div class="txt">Belong</div><div class="ok"></div></div>
+        <div class="word" data-word="CARE"><div class="txt">Care</div><div class="ok"></div></div>
+        <div class="word" data-word="CHEER"><div class="txt">Cheer</div><div class="ok"></div></div>
+        <div class="word" data-word="GIGGLE"><div class="txt">Giggle</div><div class="ok"></div></div>
+        <div class="word" data-word="HAPPY"><div class="txt">Happy</div><div class="ok"></div></div>
+        <div class="word" data-word="JOY"><div class="txt">Joy</div><div class="ok"></div></div>
+        <div class="word" data-word="KIND"><div class="txt">Kind</div><div class="ok"></div></div>
+        <div class="word" data-word="LAUGH"><div class="txt">Laugh</div><div class="ok"></div></div>
+        <div class="word" data-word="MEMORY"><div class="txt">Memory</div><div class="ok"></div></div>
+        <div class="word" data-word="SHARE"><div class="txt">Share</div><div class="ok"></div></div>
+        <div class="word" data-word="SUPPORT"><div class="txt">Support</div><div class="ok"></div></div>
+        <div class="word" data-word="TEAM"><div class="txt">Team</div><div class="ok"></div></div>
+        <div class="word" data-word="TOGETHER"><div class="txt">Together</div><div class="ok"></div></div>
+        <div class="word" data-word="TRUST"><div class="txt">Trust</div><div class="ok"></div></div></div>
+  </div>
+</div>
+<div class="lb-overlay" id="lb-overlay">
+  <form class="lb-modal" id="lb-form">
+    <h2>Join the leaderboard</h2>
+    <p>Before you start, enter your name so we can record your desktop time.</p>
+    <label for="lb-name">Display name</label>
+    <input type="text" id="lb-name" name="lb-name" maxlength="40" autocomplete="name" placeholder="e.g. Alex" />
+    <p class="lb-warning" id="lb-warning"></p>
+    <div class="lb-actions">
+      <button type="submit">Start puzzle</button>
+    </div>
+  </form>
+</div>
+<div class="lb-panel" id="lb-panel">
+  <div class="lb-panel-head">
+    <div>
+      <div class="lb-panel-title">Desktop leaderboard</div>
+      <div class="lb-panel-subtitle">Fastest recorded times</div>
+    </div>
+    <div class="lb-panel-actions">
+      <button type="button" id="lb-change">Change name</button>
+      <button type="button" id="lb-clear">Clear</button>
+    </div>
+  </div>
+  <div class="lb-status" id="lb-status">Waiting for player…</div>
+  <ol class="lb-list" id="lb-list"></ol>
+  <div class="lb-empty" id="lb-empty">No attempts yet. Be the first!</div>
+</div>
+
+<script>
+const SETTINGS={"rows":14,"cols":14};
+const GRID=["SUDRUGEWWIDOUF", "NISTDIABFCYQDN", "VGJROGDVCZLKOP", "BELONGVHIHGUVC", "GIAPCLETDNIKHK", "HGXPAENTEZSOTE", "KTSURTTWHAPPYI", "KRGSEZUYSEMGVW", "YHJIYPREMARXRS", "BULJRAESPZGAHI", "TJYPOJWYHYQEHO", "IPOHMYILIBYILS", "ZHSUENMSAUUIZI", "JPMFMJQAYQQKVR"];
+const WORDS=[{"text": "ADVENTURE", "display_text": "Adventure", "path": [[1, 6], [2, 6], [3, 6], [4, 6], [5, 6], [6, 6], [7, 6], [8, 6], [9, 6]]}, {"text": "ALWAYS", "display_text": "Always", "path": [[12, 8], [11, 7], [10, 6], [9, 5], [8, 4], [7, 3]]}, {"text": "BELONG", "display_text": "Belong", "path": [[3, 0], [3, 1], [3, 2], [3, 3], [3, 4], [3, 5]]}, {"text": "CARE", "display_text": "Care", "path": [[4, 4], [5, 4], [6, 4], [7, 4]]}, {"text": "CHEER", "display_text": "Cheer", "path": [[2, 8], [3, 7], [4, 6], [5, 5], [6, 4]]}, {"text": "GIGGLE", "display_text": "Giggle", "path": [[0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5]]}, {"text": "HAPPY", "display_text": "Happy", "path": [[6, 8], [6, 9], [6, 10], [6, 11], [6, 12]]}, {"text": "JOY", "display_text": "Joy", "path": [[9, 3], [10, 4], [11, 5]]}, {"text": "KIND", "display_text": "Kind", "path": [[4, 11], [4, 10], [4, 9], [4, 8]]}, {"text": "LAUGH", "display_text": "Laugh", "path": [[4, 5], [5, 4], [6, 3], [7, 2], [8, 1]]}, {"text": "MEMORY", "display_text": "Memory", "path": [[13, 4], [12, 4], [11, 4], [10, 4], [9, 4], [8, 4]]}, {"text": "SHARE", "display_text": "Share", "path": [[11, 13], [10, 12], [9, 11], [8, 10], [7, 9]]}, {"text": "SUPPORT", "display_text": "Support", "path": [[7, 3], [6, 3], [5, 3], [4, 3], [3, 3], [2, 3], [1, 3]]}, {"text": "TEAM", "display_text": "Team", "path": [[4, 7], [5, 8], [6, 9], [7, 10]]}, {"text": "TOGETHER", "display_text": "Together", "path": [[1, 3], [2, 4], [3, 5], [4, 6], [5, 7], [6, 8], [7, 9], [8, 10]]}, {"text": "TRUST", "display_text": "Trust", "path": [[6, 5], [6, 4], [6, 3], [6, 2], [6, 1]]}];
+const PUZZLE_KEY="9781464293245-Forever-friends";
+const LAYOUT_ID="desktop";
+
+const rows = SETTINGS.rows, cols = SETTINGS.cols;
+const gridStrings = GRID;
+const answers = WORDS.map(w => ({ text:w.text, display:w.display_text||w.text, path:w.path.map(([r,c])=>[r,c]) }));
+
+const gridEl = document.getElementById('grid');
+gridEl.textContent='';
+const wordsList = document.getElementById('wordsList');
+const timerEl = document.getElementById('timer');
+const progressEl = document.getElementById('progress');
+const gameApi = window.__WORDSEARCH_API = {};
+
+const grid=[], cellEls=[];
+for (let r=0;r<rows;r++){
+  grid[r]=[]; cellEls[r]=[]; const line=gridStrings[r]||'';
+  for (let c=0;c<cols;c++){
+    const ch=(line[c]||' ');
+    grid[r][c]=ch;
+    const el=document.createElement('div');
+    el.className='cell'+(ch.trim()===''?' empty':'');
+    el.dataset.r=r; el.dataset.c=c; el.textContent=ch.trim()===''?'':ch;
+    gridEl.appendChild(el); cellEls[r][c]=el;
+  }
+}
+
+const wordState=new Map(); answers.forEach(a=>wordState.set(a.text,{found:false}));
+
+function coordsEqual(a,b){return a[0]==b[0]&&a[1]==b[1];}
+function pathEquals(p1,p2){ if(p1.length!==p2.length) return false; for(let i=0;i<p1.length;i++) if(!coordsEqual(p1[i],p2[i])) return false; return true; }
+function reversePath(p){ return [...p].reverse(); }
+function genLinePath(r0,c0,r1,c1){ let dr=r1-r0, dc=c1-c0; const steps=Math.max(Math.abs(dr),Math.abs(dc)); if(steps===0) return [[r0,c0]]; const stepR=dr===0?0:(dr/Math.abs(dr)); const stepC=dc===0?0:(dc/Math.abs(dc)); if(!((stepR===0||stepC===0)||(Math.abs(dr)===Math.abs(dc)))) return []; const path=[]; let r=r0,c=c0; for(let i=0;i<=steps;i++){ path.push([r,c]); r+=stepR; c+=stepC; } return path; }
+let isDown=false,start=null,preview=new Set();
+function clearPreview(){ preview.forEach(k=>{ const [r,c]=k.split(',').map(Number); cellEls[r][c].classList.remove('preview','selected'); }); preview.clear(); }
+function markFound(p){ p.forEach(([r,c])=>cellEls[r][c].classList.add('found')); }
+function refreshProgress(){ const n=answers.filter(a=>wordState.get(a.text).found).length; progressEl.textContent=`${n} / ${answers.length}`; }
+function tryCommit(r0,c0,r1,c1){ const sel=genLinePath(r0,c0,r1,c1); if(!sel.length) return false; for(const ans of answers){ if(wordState.get(ans.text).found) continue; if(pathEquals(sel,ans.path)||pathEquals(sel,reversePath(ans.path))){ wordState.get(ans.text).found=true; markFound(sel); onWordStateChange(); refreshProgress(); checkWin(); return true; } } sel.forEach(([r,c])=>cellEls[r][c].classList.add('selected')); setTimeout(()=>sel.forEach(([r,c])=>cellEls[r][c].classList.remove('selected')),200); return false; }
+function checkWin(){ if(answers.every(a=>wordState.get(a.text).found)){ const secs=Math.floor((Date.now()-startTime)/1000); const mm=String(Math.floor(secs/60)).padStart(2,'0'); const ss=String(secs%60).padStart(2,'0'); const payload={seconds:secs, display:`${mm}:${ss}`}; if(typeof gameApi.onWin === 'function'){ gameApi.onWin(payload); } else { alert(`All done! Time: ${mm}:${ss}`); } } }
+function cellFromEvent(e){ if(e.touches&&e.touches.length){ const t=e.touches[0]; const el=document.elementFromPoint(t.clientX,t.clientY); if(!el||!el.classList.contains('cell')) return null; return [+el.dataset.r,+el.dataset.c]; } else { const el=e.target.closest('.cell'); if(!el) return null; return [+el.dataset.r,+el.dataset.c]; } }
+const gridRoot=document.getElementById('grid');
+const bind=(el,ev,fn,opts)=>el.addEventListener(ev,fn,opts||false);
+bind(gridRoot,'mousedown', e=>{ const pos=cellFromEvent(e); if(!pos) return; const [r,c]=pos; if(grid[r][c].trim()==='') return; isDown=true; start=pos; clearPreview(); e.preventDefault(); });
+bind(gridRoot,'mousemove', e=>{ if(!isDown) return; const pos=cellFromEvent(e); if(!pos) return; clearPreview(); const sel=genLinePath(start[0],start[1],pos[0],pos[1]); sel.forEach(([rr,cc])=>{ if(grid[rr][cc].trim()!==''){ const key=rr+','+cc; preview.add(key); cellEls[rr][cc].classList.add('preview'); } }); });
+bind(window,'mouseup', e=>{ if(!isDown) return; const pos=cellFromEvent(e)||start; isDown=false; tryCommit(start[0],start[1],pos[0],pos[1]); clearPreview(); });
+bind(gridRoot,'touchstart', e=>{ const pos=cellFromEvent(e); if(!pos) return; const [r,c]=pos; if(grid[r][c].trim()==='') return; isDown=true; start=pos; clearPreview(); }, {passive:true});
+bind(gridRoot,'touchmove', e=>{ if(!isDown) return; const pos=cellFromEvent(e); if(!pos) return; clearPreview(); const sel=genLinePath(start[0],start[1],pos[0],pos[1]); sel.forEach(([rr,cc])=>{ if(grid[rr][cc].trim()!==''){ const key=rr+','+cc; preview.add(key); cellEls[rr][cc].classList.add('preview'); } }); }, {passive:true});
+bind(window,'touchend', e=>{ if(!isDown) return; isDown=false; let end=start; if(preview.size){ const last=Array.from(preview).pop().split(',').map(Number); end=last; } tryCommit(start[0],start[1],end[0],end[1]); clearPreview(); }, {passive:true});
+let startTime=Date.now();
+function updateTimerText(){ const secs=Math.floor((Date.now()-startTime)/1000); const mm=String(Math.floor(secs/60)).padStart(2,'0'); const ss=String(Math.floor(secs%60)).padStart(2,'0'); timerEl.textContent = mm+':'+ss; }
+gameApi.resetTimer = () => { startTime = Date.now(); timerEl.textContent = "00:00"; };
+setInterval(updateTimerText, 1000);
+
+function onWordStateChange(){
+  const list=wordsList; list.innerHTML='';
+  for(const a of answers){ const row=document.createElement('div'); row.className='word'; const l=document.createElement('div'); l.textContent=a.display; const ok=document.createElement('div'); ok.className='ok'; ok.textContent=wordState.get(a.text).found?'✓':''; row.append(l,ok); row.onclick=()=>{ const [r,c]=a.path[0]; const el=cellEls[r][c]; el.classList.add('hover'); setTimeout(()=>el.classList.remove('hover'),600); }; list.appendChild(row);} }
+function computeFit(){
+  const header=document.querySelector('.panel.main .header');
+  const content=document.querySelector('.panel.main .content');
+  const headerH=header.getBoundingClientRect().height;
+  const toolbarH=content.querySelector('.toolbar').getBoundingClientRect().height;
+  const cs=getComputedStyle(content);
+  const contentPY=parseFloat(cs.paddingTop)+parseFloat(cs.paddingBottom);
+  const rect=document.querySelector('.panel.main').getBoundingClientRect();
+  const availW=rect.width - parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);
+  const availH=rect.height - headerH - toolbarH - contentPY - 12;
+  const gap=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--gap'))||4;
+  const totalGapW=gap*(cols-1); const totalGapH=gap*(rows-1);
+  const maxCellW=(availW-totalGapW)/cols; const maxCellH=(availH-totalGapH)/rows;
+  const cell=Math.floor(Math.max(10, Math.min(maxCellW,maxCellH, 54)));
+  document.documentElement.style.setProperty('--cell', cell+'px');
+}
+let rAF=null; function scheduleFit(){ if(rAF) cancelAnimationFrame(rAF); rAF=requestAnimationFrame(()=>{ computeFit(); rAF=null;}); }
+addEventListener('resize', scheduleFit); addEventListener('orientationchange', scheduleFit);
+// Initialize
+onWordStateChange(); refreshProgress(); scheduleFit();
+// Buttons
+const resetBtn=document.getElementById('resetBtn'); const revealBtn=document.getElementById('revealBtn');
+function resetGame(){ wordState.forEach(v=>{ v.found=false; }); for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) cellEls[r][c].classList.remove('found','preview','selected'); startTime=Date.now(); onWordStateChange(); refreshProgress(); }
+function revealOne(){ const remaining = answers.filter(a=>!wordState.get(a.text).found); if(!remaining.length) return; const a = remaining[Math.floor(Math.random()*remaining.length)]; wordState.get(a.text).found = true; markFound(a.path); onWordStateChange(); refreshProgress(); }
+resetBtn.addEventListener('click', resetGame); revealBtn.addEventListener('click', revealOne);
+</script>
+<script>
+(() => {
+  const api = window.__WORDSEARCH_API;
+  if (!api) return;
+  const overlay = document.getElementById('lb-overlay');
+  if (!overlay) return;
+  const form = document.getElementById('lb-form');
+  const nameInput = document.getElementById('lb-name');
+  const warning = document.getElementById('lb-warning');
+  const list = document.getElementById('lb-list');
+  const emptyState = document.getElementById('lb-empty');
+  const status = document.getElementById('lb-status');
+  const changeBtn = document.getElementById('lb-change');
+  const clearBtn = document.getElementById('lb-clear');
+  const storageKey = `ws_lb_${PUZZLE_KEY}_${LAYOUT_ID}`;
+  const playerKey = storageKey + '__player';
+  document.body.classList.add('lb-locked');
+
+  const readJson = (key, fallback) => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return fallback;
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : fallback;
+    } catch (err) {
+      return fallback;
+    }
+  };
+  const writeJson = (key, value) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (err) {
+      console.warn('Leaderboard storage error', err);
+    }
+  };
+
+  let leaderboard = readJson(storageKey, []);
+  let currentPlayer = localStorage.getItem(playerKey) || '';
+  if (currentPlayer) {
+    nameInput.value = currentPlayer;
+    status.textContent = `Tracking times for ${currentPlayer}.`;
+  }
+
+  const renderBoard = () => {
+    list.innerHTML = '';
+    if (!leaderboard.length) {
+      emptyState.hidden = false;
+      return;
+    }
+    emptyState.hidden = true;
+    leaderboard.forEach((entry, idx) => {
+      const li = document.createElement('li');
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = `${idx + 1}. ${entry.name}`;
+      const time = document.createElement('span');
+      time.className = 'time';
+      time.textContent = entry.display;
+      li.appendChild(name);
+      li.appendChild(time);
+      list.appendChild(li);
+    });
+  };
+
+  renderBoard();
+
+  const hideOverlay = () => {
+    overlay.classList.add('hidden');
+    overlay.style.display = 'none';
+    document.body.classList.remove('lb-locked');
+  };
+  const showOverlay = () => {
+    overlay.style.display = 'flex';
+    overlay.classList.remove('hidden');
+    document.body.classList.add('lb-locked');
+    warning.textContent = '';
+    setTimeout(() => nameInput.focus(), 50);
+  };
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const name = nameInput.value.trim();
+    if (!name) {
+      warning.textContent = 'Please enter your name to begin.';
+      nameInput.focus();
+      return;
+    }
+    currentPlayer = name.slice(0, 40);
+    try { localStorage.setItem(playerKey, currentPlayer); } catch (err) { /* ignore */ }
+    status.textContent = `Tracking times for ${currentPlayer}.`;
+    hideOverlay();
+    if (typeof api.resetTimer === 'function') {
+      api.resetTimer();
+    }
+  });
+
+  if (changeBtn) {
+    changeBtn.addEventListener('click', () => {
+      showOverlay();
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (!leaderboard.length) return;
+      if (confirm('Clear all recorded times for this puzzle?')) {
+        leaderboard = [];
+        writeJson(storageKey, leaderboard);
+        renderBoard();
+        status.textContent = 'Leaderboard cleared.';
+      }
+    });
+  }
+
+  showOverlay();
+
+  api.onWin = (payload) => {
+    if (!currentPlayer) {
+      alert(`All done! Time: ${payload.display}`);
+      return;
+    }
+    leaderboard.push({
+      name: currentPlayer,
+      seconds: payload.seconds,
+      display: payload.display,
+      ts: Date.now()
+    });
+    leaderboard.sort((a, b) => a.seconds - b.seconds);
+    leaderboard = leaderboard.slice(0, 25);
+    writeJson(storageKey, leaderboard);
+    renderBoard();
+    status.textContent = `${currentPlayer} finished in ${payload.display}.`;
+    alert(`${currentPlayer}, your time: ${payload.display}!`);
+  };
+})();
+</script>
+
+</body></html>
